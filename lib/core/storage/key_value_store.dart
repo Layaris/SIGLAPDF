@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:hive_ce/hive.dart';
 
 /// Archivio chiave/valore minimale. I valori sono tipi semplici
@@ -57,7 +59,7 @@ class HiveKeyValueStore implements KeyValueStore {
   Iterable<String> get keys => _box.keys.map((k) => k.toString());
 }
 
-/// Converte ricorsivamente le mappe lette da Hive (Map<dynamic, dynamic>)
+/// Converte ricorsivamente le mappe lette da Hive (`Map<dynamic, dynamic>`)
 /// in `Map<String, dynamic>`.
 Map<String, dynamic> asStringMap(Object? value) {
   if (value is! Map) return <String, dynamic>{};
@@ -66,6 +68,7 @@ Map<String, dynamic> asStringMap(Object? value) {
 
 Object? _normalize(Object? v) {
   if (v is Map) return asStringMap(v);
+  if (v is TypedData) return v; // Uint8List resta tale (PNG delle firme).
   if (v is List) return v.map(_normalize).toList();
   return v;
 }

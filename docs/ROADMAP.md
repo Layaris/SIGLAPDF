@@ -3,15 +3,15 @@
 Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 
 ## Fase 1 — Base
-- 🔶 Documentazione iniziale (CLAUDE.md, README, ROADMAP, ARCHITECTURE)
-- 🔶 Progetto Flutter (android, ios, web), dipendenze
-- 🔶 Tema chiaro/scuro "inchiostro e carta"
-- 🔶 Navigazione adattiva: Documenti, Firme, Profilo, Impostazioni
+- ✅ Documentazione iniziale (CLAUDE.md, README, ROADMAP, ARCHITECTURE)
+- ✅ Progetto Flutter (android, ios, web), dipendenze
+- ✅ Tema chiaro/scuro "inchiostro e carta"
+- ✅ Navigazione adattiva: Documenti, Firme, Profilo, Impostazioni
 
 ## Fase 2 — Firme
-- ⬜ Archivio locale (Hive, IndexedDB sul web)
-- ⬜ Libreria firme: firme e sigle, rinomina, elimina, predefinita
-- ⬜ Disegno a mano: Bezier, pressione, colore, spessore, undo/redo, cancella, PNG ritagliato
+- ✅ Archivio locale (Hive, IndexedDB sul web)
+- ✅ Libreria firme: firme e sigle, rinomina, elimina, predefinita
+- ✅ Disegno a mano: Bezier, pressione, colore, spessore, undo/redo, cancella, PNG ritagliato
 
 ## Fase 3 — Import e firma scritta
 - ⬜ Import da immagine con scontorno (Otsu, trasparenza, bordi morbidi, ritaglio, ricolorazione)

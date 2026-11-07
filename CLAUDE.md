@@ -79,6 +79,10 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Decisioni prese (e perché)
 
+- **`asStringMap` non tocca i `TypedData`**: i PNG letti da Hive restano `Uint8List`.
+- **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
+  spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
+
 - **printing invece di pdfrx**: niente NDK su Android, render affidabile su tutte le piattaforme.
 - **Hive con mappe JSON-like** (nessun TypeAdapter): schema semplice, facile da migrare e da
   mettere nel backup.
@@ -98,8 +102,9 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md` per il dettaglio. Fase corrente: **1 — setup, tema, navigazione**.
+Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–2 completate (base, libreria firme, disegno). Fase corrente: **3 — import immagine e firma scritta**.
 
 ## Prossimi passi
 
-1. Archivio locale, libreria firme, disegno firma.
+1. Import immagine con scontorno (Otsu) e firma scritta con font corsivo.
+2. Apertura PDF, render, elementi, esportazione con flatten.
