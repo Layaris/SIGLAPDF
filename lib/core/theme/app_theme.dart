@@ -54,7 +54,8 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: text.titleLarge?.copyWith(fontWeight: FontWeight.w600, color: c.ink),
+        // Dimensione esplicita: nel tema base i TextStyle non hanno ancora le misure.
+        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: c.ink, letterSpacing: -0.2),
       ),
       cardTheme: CardThemeData(
         color: c.surface,
@@ -68,7 +69,7 @@ class AppTheme {
         indicatorColor: c.accent.withValues(alpha: 0.12),
         elevation: 0,
         height: 68,
-        labelTextStyle: WidgetStatePropertyAll(text.labelMedium?.copyWith(color: c.ink)),
+        labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500, color: c.ink)),
         iconTheme: WidgetStateProperty.resolveWith(
           (s) => IconThemeData(color: s.contains(WidgetState.selected) ? c.accent : c.secondary),
         ),
@@ -78,8 +79,8 @@ class AppTheme {
         indicatorColor: c.accent.withValues(alpha: 0.12),
         selectedIconTheme: IconThemeData(color: c.accent),
         unselectedIconTheme: IconThemeData(color: c.secondary),
-        selectedLabelTextStyle: text.labelMedium?.copyWith(color: c.ink, fontWeight: FontWeight.w600),
-        unselectedLabelTextStyle: text.labelMedium?.copyWith(color: c.secondary),
+        selectedLabelTextStyle: TextStyle(fontSize: 13, color: c.ink, fontWeight: FontWeight.w600),
+        unselectedLabelTextStyle: TextStyle(fontSize: 13, color: c.secondary),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -122,7 +123,7 @@ class AppTheme {
         side: BorderSide(color: c.line),
         backgroundColor: c.surface,
         selectedColor: c.accent.withValues(alpha: 0.12),
-        labelStyle: text.labelLarge?.copyWith(color: c.ink),
+        labelStyle: TextStyle(fontSize: 14, color: c.ink),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,

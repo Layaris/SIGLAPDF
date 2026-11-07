@@ -72,7 +72,11 @@ class _DrawSignaturePageState extends State<DrawSignaturePage> {
   Future<void> _save() async {
     if (_drawing.isEmpty || _saving) return;
     final repo = AppScope.of(context).signatures;
-    final name = await showSaveSignatureDialog(context, kind: widget.kind, existingCount: repo.ofKind(widget.kind).length);
+    final name = await showSaveSignatureDialog(
+      context,
+      kind: widget.kind,
+      existingCount: repo.ofKind(widget.kind).length,
+    );
     if (name == null || !mounted) return;
     setState(() => _saving = true);
     final rendered = await renderStrokesToPng(_drawing.strokes);
@@ -104,10 +108,7 @@ class _DrawSignaturePageState extends State<DrawSignaturePage> {
             listenable: _drawing,
             builder: (context, _) => Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: FilledButton(
-                onPressed: _drawing.isEmpty || _saving ? null : _save,
-                child: const Text('Salva'),
-              ),
+              child: FilledButton(onPressed: _drawing.isEmpty || _saving ? null : _save, child: const Text('Salva')),
             ),
           ),
         ],
@@ -118,37 +119,47 @@ class _DrawSignaturePageState extends State<DrawSignaturePage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: isInitials ? 1.6 : 2.6,
-                    child: Semantics(
-                      label: 'Area di disegno della firma',
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: c.line),
+                // L'area si adatta allo schermo: alta abbastanza anche sul telefono.
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final w = box.maxWidth;
+                    final ideal = w / (isInitials ? 1.2 : 1.5);
+                    // Mai più alta dello spazio disponibile (clamp fallirebbe se maxHeight < 160).
+                    final h = ideal < 160 ? (box.maxHeight < 160 ? box.maxHeight : 160.0) : (ideal > box.maxHeight ? box.maxHeight : ideal);
+                    return Center(
+                      child: SizedBox(
+                        width: w,
+                        height: h,
+                        child: Semantics(
+                          label: 'Area di disegno della firma',
+                          child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Listener(
-                            onPointerDown: _down,
-                            onPointerMove: _move,
-                            onPointerUp: _up,
-                            onPointerCancel: _up,
-                            behavior: HitTestBehavior.opaque,
-                            child: ListenableBuilder(
-                              listenable: _drawing,
-                              builder: (context, _) => CustomPaint(
-                                painter: _InkPainter(_drawing.strokes, showHint: _drawing.isEmpty),
-                                size: Size.infinite,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(color: c.line),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Listener(
+                                onPointerDown: _down,
+                                onPointerMove: _move,
+                                onPointerUp: _up,
+                                onPointerCancel: _up,
+                                behavior: HitTestBehavior.opaque,
+                                child: ListenableBuilder(
+                                  listenable: _drawing,
+                                  builder: (context, _) => CustomPaint(
+                                    painter: _InkPainter(_drawing.strokes, showHint: _drawing.isEmpty),
+                                    size: Size.infinite,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -188,7 +199,10 @@ class _Toolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
     return Container(
-      decoration: BoxDecoration(color: c.surface, border: Border(top: BorderSide(color: c.line))),
+      decoration: BoxDecoration(
+        color: c.surface,
+        border: Border(top: BorderSide(color: c.line)),
+      ),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: ListenableBuilder(
         listenable: drawing,
@@ -198,8 +212,18 @@ class _Toolbar extends StatelessWidget {
           spacing: 8,
           runSpacing: 4,
           children: [
-            _ColorDot(color: InkColors.blue, label: 'Blu', selected: color == InkColors.blue, onTap: () => onColor(InkColors.blue)),
-            _ColorDot(color: InkColors.black, label: 'Nero', selected: color == InkColors.black, onTap: () => onColor(InkColors.black)),
+            _ColorDot(
+              color: InkColors.blue,
+              label: 'Blu',
+              selected: color == InkColors.blue,
+              onTap: () => onColor(InkColors.blue),
+            ),
+            _ColorDot(
+              color: InkColors.black,
+              label: 'Nero',
+              selected: color == InkColors.black,
+              onTap: () => onColor(InkColors.black),
+            ),
             SizedBox(
               width: 180,
               child: Row(
@@ -297,7 +321,10 @@ class _InkPainter extends CustomPainter {
     );
     if (showHint) {
       final tp = TextPainter(
-        text: const TextSpan(text: 'Firma qui', style: TextStyle(color: Color(0xFF9AA1AD), fontSize: 16)),
+        text: const TextSpan(
+          text: 'Firma qui',
+          style: TextStyle(color: Color(0xFF9AA1AD), fontSize: 16),
+        ),
         textDirection: TextDirection.ltr,
       )..layout();
       tp.paint(canvas, Offset(size.width * 0.08, y - tp.height - 8));
