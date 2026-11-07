@@ -532,7 +532,8 @@ class EditorPageState extends State<EditorPage> {
                 onTap: () => openFields(focus: f.name),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: c.accent.withValues(alpha: 0.10),
+                    // Opaco: copre il valore già disegnato nel PDF e mostra solo quello attuale.
+                    color: Color.alphaBlend(c.accent.withValues(alpha: 0.10), Colors.white),
                     border: Border.all(color: c.accent.withValues(alpha: 0.45)),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 2),
