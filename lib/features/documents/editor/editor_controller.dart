@@ -48,7 +48,11 @@ class EditorController extends ChangeNotifier {
 
   _Snapshot get _snap => _Snapshot(_elements, Map.of(_formValues));
 
+  /// Campo che si sta digitando: i tasti successivi sullo stesso campo non creano nuovi passi.
+  String? _typingField;
+
   void _record() {
+    _typingField = null;
     _undo.add(_snap);
     if (_undo.length > 100) _undo.removeAt(0);
     _redo.clear();
@@ -143,7 +147,10 @@ class EditorController extends ChangeNotifier {
 
   void setFormValue(String name, String value) {
     if (_formValues[name] == value) return;
-    _record();
+    if (_typingField != name) {
+      _record();
+      _typingField = name;
+    }
     _formValues = {..._formValues, name: value};
     notifyListeners();
   }
@@ -170,6 +177,7 @@ class EditorController extends ChangeNotifier {
   }
 
   void _restore(_Snapshot s) {
+    _typingField = null;
     _elements = s.elements;
     _formValues = Map.of(s.form);
     if (!_elements.any((e) => e.id == _selectedId)) _selectedId = null;

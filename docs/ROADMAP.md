@@ -27,10 +27,10 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Esportazione con flatten, salva o condividi
 
 ## Fase 5 — Profilo e campi
-- 🔶 Profilo con campi fissi e personalizzati (modello e archivio fatti, manca la schermata)
-- ⬜ Inserimento rapido di un dato del profilo
-- ⬜ AcroForm: rilevamento, compilazione, autocompilazione
-- ⬜ Riconoscimento locale dei campi non segnalati con anteprima
+- ✅ Profilo con campi fissi e personalizzati (salvataggio automatico)
+- ✅ Inserimento rapido di un dato del profilo
+- ✅ AcroForm: rilevamento, compilazione, autocompilazione
+- ✅ Riconoscimento locale dei campi non segnalati con anteprima
 
 ## Fase 6 — Extra
 - ⬜ Riconoscimento AI opzionale (API Anthropic)

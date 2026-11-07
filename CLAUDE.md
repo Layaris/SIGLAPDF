@@ -97,6 +97,14 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 - **Render pagine**: `PageRenderer` con cache e massimo due render in parallelo; dpi in base alla
   larghezza mostrata (tetto 220). Attenzione: in `whenComplete` non restituire il future stesso
   (deadlock trovato e corretto).
+- **Riconoscimento campi**: etichette normalizzate a lunghezza invariata (indici → coordinate
+  dei caratteri). Corrispondenza più lunga e non sovrapposta; "il" vale come data di nascita
+  solo dopo "nato a". Spazio da compilare: linea `___`/`....` → dopo `:` fino alla prossima
+  etichetta o al margine → riga di soli `___` sotto → spazio libero sotto. Le proposte senza
+  valore nel profilo partono escluse; "Luogo e data" usa la data di oggi anche senza città.
+- **AcroForm + profilo**: abbinamento per nome del campo (`kindForFieldName`, es. `codiceFiscale`,
+  `data_nascita`, `CF`); si compilano solo i campi vuoti. La digitazione nello stesso campo è un
+  solo passo di annulla.
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -119,11 +127,10 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–4 completate (base, firme, import, firma scritta, editor PDF con esportazione).
-Fase corrente: **5 — profilo, AcroForm, riconoscimento locale dei campi**.
+Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–5 completate (base, firme, editor PDF, profilo, AcroForm, riconoscimento locale).
+Fase corrente: **6 — AI opzionale, backup cifrato, blocco biometrico, scanner, "Apri con"**.
 
 ## Prossimi passi
 
-1. Schermata profilo, pannello campi AcroForm con autocompilazione, inserimento rapido dati.
-2. Riconoscimento locale dei campi non segnalati con anteprima.
-3. AI opzionale, backup, biometria, scanner, "Apri con".
+1. AI opzionale (AnthropicFieldDetector), backup .sigla, blocco biometrico, scanner, "Apri con".
+2. Rifinitura grafica, impostazioni complete, icone, build web, workflow GitHub, DMReleases.

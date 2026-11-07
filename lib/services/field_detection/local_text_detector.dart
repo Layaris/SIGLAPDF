@@ -96,7 +96,7 @@ class LocalTextFieldDetector implements FieldDetector {
           }
         }
         if (box == null || box.width < h * 1.5) continue;
-        final labelText = line.text.substring(label.start, label.end).trim();
+        final labelText = line.text.substring(label.start, label.end).replaceAll(RegExp(r'\s+'), ' ').trim();
         out.add(DetectedField(
           page: page,
           kind: label.kind,

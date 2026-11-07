@@ -6,11 +6,16 @@ import 'package:printing/printing.dart';
 
 import '../../../core/app_services.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/field_detection/field_detector.dart';
+import '../../../services/field_detection/local_text_detector.dart';
 import '../../../services/pdf_service.dart';
 import '../../settings/signature_lock.dart';
 import '../../signatures/new_signature_sheet.dart';
 import '../../signatures/signature_model.dart';
 import '../../signatures/widgets/signature_image.dart';
+import '../autofill/autofill.dart';
+import '../autofill/autofill_preview_page.dart';
+import '../autofill/form_fields_sheet.dart';
 import '../models/placed_element.dart';
 import '../widgets/element_view.dart';
 import '../widgets/pdf_page_view.dart';
@@ -329,8 +334,165 @@ class EditorPageState extends State<EditorPage> {
 
   // ---------- UI ----------
 
-  /// Pulsanti extra della barra strumenti (campi, autocompilazione, profilo): fase 5.
-  List<Widget> extraTools(BuildContext context) => const [];
+  // ---------- Campi e profilo ----------
+
+  bool get _hasForm => ctrl.info.fillableFields.isNotEmpty;
+
+  Future<void> openFields({String? focus}) => showFormFieldsSheet(
+        context,
+        controller: ctrl,
+        focusField: focus,
+        onAutofill: autofillAcroForm,
+      );
+
+  /// Compila i campi AcroForm vuoti con i dati del profilo (abbinati per nome del campo).
+  void autofillAcroForm() {
+    final profile = AppScope.of(context).profile.value;
+    if (profile.isEmpty) {
+      _snack('Compila prima il tuo profilo');
+      return;
+    }
+    final values = acroFormValuesFromProfile(ctrl.info.fields, ctrl.formValues, profile, today: todayText());
+    ctrl.setFormValues(values);
+    _snack(values.isEmpty ? 'Nessun campo da compilare con il profilo' : 'Compilati ${values.length} campi dal profilo');
+  }
+
+  /// Inserisce un dato del profilo come testo sulla pagina.
+  Future<void> insertProfileData() async {
+    final profile = AppScope.of(context).profile.value;
+    final entries = profile.filledEntries;
+    if (entries.isEmpty) {
+      _snack('Il profilo è vuoto: aggiungi i tuoi dati nella sezione Profilo');
+      return;
+    }
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.7),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(bottom: 16),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text('Inserisci un dato', style: Theme.of(context).textTheme.titleLarge),
+              ),
+              for (final (label, value) in entries)
+                ListTile(title: Text(value), subtitle: Text(label), onTap: () => Navigator.pop(context, value)),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (picked != null) await addText(preset: picked);
+  }
+
+  /// Motori di riconoscimento attivi. Il motore AI si aggiunge nella fase 6.
+  List<FieldDetector> detectors() => const [LocalTextFieldDetector()];
+
+  /// "Compila automaticamente": trova i campi non segnalati e mostra l'anteprima.
+  Future<void> autoDetect() async {
+    final services = AppScope.of(context);
+    final profile = services.profile.value;
+    final nav = Navigator.of(context);
+    unawaited(showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const PopScope(
+        canPop: false,
+        child: AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text('Cerco i campi…')])),
+      ),
+    ));
+    final found = <DetectedField>[];
+    String? error;
+    final avoid = [
+      for (final f in ctrl.info.fields)
+        if (f.rect != null && f.page >= 0) (f.page, f.rect!),
+    ];
+    for (final d in detectors()) {
+      try {
+        found.addAll(await d.detect(DetectionInput(pdf: ctrl.bytes, pages: ctrl.info.pages, avoid: avoid)));
+      } catch (e) {
+        error = e.toString();
+      }
+    }
+    nav.pop();
+    if (!mounted) return;
+    if (found.isEmpty) {
+      _snack(error ?? 'Nessun campo riconosciuto. Puoi aggiungere testi a mano o provare il riconoscimento AI.');
+      return;
+    }
+    final signature = services.signatures.defaultOf(SignatureKind.signature);
+    final proposals = buildProposals(found, profile, today: todayText(), hasSignature: signature != null);
+    final confirmed = await nav.push<List<FillProposal>>(MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => AutofillPreviewPage(
+        proposals: proposals,
+        hasSignature: signature != null,
+        note: profile.isEmpty ? 'Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.' : null,
+      ),
+    ));
+    if (confirmed == null || !mounted) return;
+    if (confirmed.any((p) => p.isSignature) && !await ensureSignaturesUnlocked(context)) return;
+    final items = proposalsToElements(
+      confirmed,
+      pages: ctrl.info.pages,
+      color: _inkColor,
+      signaturePng: signature?.png,
+      signatureAspect: signature?.aspectRatio ?? 3,
+    );
+    ctrl.addAll(items);
+    _snack(items.length == 1 ? 'Inserito 1 campo' : 'Inseriti ${items.length} campi');
+  }
+
+  List<Widget> extraTools(BuildContext context) => [
+        if (_hasForm) _ToolButton(icon: Icons.list_alt_outlined, label: 'Campi', onTap: openFields),
+        _ToolButton(icon: Icons.auto_fix_high_outlined, label: 'Compila auto', onTap: autoDetect),
+        _ToolButton(icon: Icons.badge_outlined, label: 'Dati profilo', onTap: insertProfileData),
+      ];
+
+  /// Evidenzia i campi AcroForm sulla pagina; toccandoli si apre il pannello.
+  List<Widget> _formOverlays(int page, Size size) {
+    final c = AppColors.of(context);
+    return [
+      for (final f in ctrl.info.fillableFields)
+        if (f.page == page && f.rect != null)
+          Positioned.fromRect(
+            rect: f.rect!.toRect(size),
+            child: Semantics(
+              button: true,
+              label: 'Campo ${f.name}',
+              child: GestureDetector(
+                onTap: () => openFields(focus: f.name),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: c.accent.withValues(alpha: 0.10),
+                    border: Border.all(color: c.accent.withValues(alpha: 0.45)),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  alignment: Alignment.centerLeft,
+                  child: _formValuePreview(f),
+                ),
+              ),
+            ),
+          ),
+    ];
+  }
+
+  Widget _formValuePreview(FormFieldInfo f) {
+    final v = ctrl.formValues[f.name] ?? '';
+    if (f.kind == FormFieldKind.checkbox) {
+      return v == 'true' ? const FittedBox(child: Icon(Icons.check, color: Colors.black87)) : const SizedBox.shrink();
+    }
+    if (v.isEmpty) return const SizedBox.shrink();
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(v, maxLines: 1, style: const TextStyle(color: Colors.black87, fontSize: 14)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -408,6 +570,7 @@ class EditorPageState extends State<EditorPage> {
                       clipBehavior: Clip.none,
                       children: [
                         Positioned.fill(child: PdfPageImage(renderer: _renderer, page: i, widthPts: info.visual.width)),
+                        ..._formOverlays(i, size),
                         for (final e in ctrl.elementsOn(i))
                           ElementView(
                             key: ValueKey(e.id),
