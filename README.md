@@ -44,11 +44,14 @@ flutter run               # dispositivo collegato
 ### Web
 
 ```bash
-flutter build web --release
+flutter build web --release --no-web-resources-cdn
 ```
 
-L'output è in `build/web/`, pubblicabile su qualsiasi hosting statico.
-Nota: sul web il render delle pagine usa pdf.js, caricato dal pacchetto `printing`.
+L'output è in `build/web/`, pubblicabile su qualsiasi hosting statico (anche in una sottocartella
+con `--base-href /percorso/`). Con `--no-web-resources-cdn` CanvasKit è incluso nella build e la web
+app non fa richieste a CDN esterni. pdf.js 6.2.108 (licenza Apache 2.0) è incluso in `web/pdfjs/`
+e serve al render delle pagine; `web/index.html` imposta `dartPdfJsBaseUrl = "./pdfjs/"`
+(il `./` è obbligatorio). Sul web il blocco biometrico, lo scanner e "Apri con" non ci sono.
 
 ### Android
 
@@ -72,11 +75,22 @@ Per ora l'APK è firmato con la chiave di debug. Per usare una chiave propria:
 3. `android/app/build.gradle.kts` usa automaticamente `key.properties` se esiste,
    altrimenti la chiave di debug.
 
-Su GitHub Actions il keystore arriva dai secret (vedi "Pubblicazione").
+Su GitHub Actions il keystore arriva dai secret (vedi "Pubblicazione"). Per creare il secret:
+
+```bash
+base64 -w0 sigla-release.jks
+```
+
+**Importante:** usa sempre lo stesso keystore. Se cambia, Android non installa l'aggiornamento
+sopra la versione esistente e bisogna disinstallare (perdendo i dati non salvati nel backup).
 
 ### iOS
 
-Serve un Mac con Xcode:
+Senza Mac: lancia il workflow *Pubblica* con l'opzione IPA. Gira su un runner macOS di GitHub
+(i minuti macOS costano 10 volte quelli Linux) e produce `Sigla-build-N.ipa` non firmato, da
+installare con SideStore, AltStore o Sideloadly.
+
+Con un Mac e Xcode:
 
 ```bash
 cd ios && pod install && cd ..
@@ -91,8 +105,16 @@ con SideStore, AltStore o Sideloadly.
 ## Pubblicazione
 
 Le build si fanno **solo a mano** su GitHub Actions (workflow *Pubblica*,
-`.github/workflows/release.yml`) e vengono pubblicate nel repository
-[Layaris/DMReleases](https://github.com/Layaris/DMReleases) come `sigla-build-N`.
+`.github/workflows/release.yml`, *Actions › Pubblica › Run workflow*) e vengono pubblicate nel
+repository [Layaris/DMReleases](https://github.com/Layaris/DMReleases) come `sigla-build-N`
+(N = numero dell'esecuzione). Opzioni: APK, IPA, pubblica (se spenta restano solo gli artifact).
+
+Cosa fa: analisi e test → APK (Linux) e/o IPA (macOS) → release `Sigla · build N` con il testo di
+`sigla/release.md` → aggiorna `sigla/latest.json`, `docs/sigla/latest.json`, `sigla/CHANGELOG.md`
+(la sezione "Prossima versione" diventa "build-N") e il blocco `<!-- sigla:latest -->` del README
+di DMReleases (script `.github/scripts/update_dmreleases.py`). Prima della prima pubblicazione la
+cartella `sigla/` deve essere sul branch principale di DMReleases.
+
 Secret richiesti nel repository SIGLAPDF:
 
 | Secret | A cosa serve |
@@ -110,7 +132,8 @@ potrebbero non installarsi sopra la versione precedente.
   [licenza Community gratuita](https://www.syncfusion.com/products/communitylicense)
   per singoli sviluppatori e piccole aziende (meno di 1 milione di dollari di fatturato annuo,
   massimo 5 sviluppatori). Sigla è gratuita per uso personale e rientra in questa licenza.
-- Font della firma scritta: vedi `assets/fonts/` (SIL Open Font License).
+- Font della firma scritta: Great Vibes, `assets/fonts/` (SIL Open Font License).
+- pdf.js (web): `web/pdfjs/` (Apache 2.0).
 
 ## Documentazione
 

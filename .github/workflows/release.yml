@@ -1,0 +1,180 @@
+# Pubblica Sigla su Layaris/DMReleases. Si avvia SOLO a mano (Actions › Pubblica › Run workflow)
+# per non consumare minuti. Secret richiesti: vedi README.md, sezione "Pubblicazione".
+name: Pubblica
+
+on:
+  workflow_dispatch:
+    inputs:
+      android:
+        description: Compila l'APK Android
+        type: boolean
+        default: true
+      ios:
+        description: Compila l'IPA iPhone (non firmato, per sideload; runner macOS)
+        type: boolean
+        default: true
+      publish:
+        description: Pubblica su DMReleases (se no, solo artifact scaricabili)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pubblica
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.47.9
+  BUILD_NUMBER: ${{ github.run_number }}
+
+jobs:
+  test:
+    name: Analisi e test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - id: ver
+        run: |
+          echo "version=$(grep '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')" >> "$GITHUB_OUTPUT"
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  android:
+    name: APK Android
+    needs: test
+    if: inputs.android
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Keystore (facoltativo)
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/sigla.jks"
+            printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
+              "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" "$RUNNER_TEMP/sigla.jks" > android/key.properties
+            echo "Firma con il keystore dei secret."
+          else
+            echo "::warning::Nessun keystore: APK firmato con la chiave di debug."
+          fi
+      - run: flutter pub get
+      - name: Build APK
+        run: |
+          flutter build apk --release --build-number="$BUILD_NUMBER" \
+            --dart-define=APP_VERSION=${{ needs.test.outputs.version }} \
+            --dart-define=APP_BUILD="$BUILD_NUMBER"
+          mv build/app/outputs/flutter-apk/app-release.apk "Sigla-build-$BUILD_NUMBER.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: Sigla-build-${{ env.BUILD_NUMBER }}.apk
+          retention-days: 7
+
+  ios:
+    name: IPA iPhone (non firmato)
+    needs: test
+    if: inputs.ios
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Build iOS senza firma
+        run: |
+          flutter build ios --release --no-codesign --build-number="$BUILD_NUMBER" \
+            --dart-define=APP_VERSION=${{ needs.test.outputs.version }} \
+            --dart-define=APP_BUILD="$BUILD_NUMBER"
+      - name: Crea l'IPA (Payload/Runner.app)
+        run: |
+          mkdir -p Payload
+          cp -R build/ios/iphoneos/Runner.app Payload/
+          zip -qry "Sigla-build-$BUILD_NUMBER.ipa" Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ipa
+          path: Sigla-build-${{ env.BUILD_NUMBER }}.ipa
+          retention-days: 7
+
+  publish:
+    name: Pubblica su DMReleases
+    needs: [test, android, ios]
+    # Pubblica se almeno una build è riuscita e nessuna è fallita.
+    if: >-
+      always() && inputs.publish &&
+      needs.test.result == 'success' &&
+      !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') &&
+      (needs.android.result == 'success' || needs.ios.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.DMRELEASES_TOKEN }}
+      VERSION: ${{ needs.test.outputs.version }}
+    steps:
+      - name: Controlla il token
+        run: |
+          if [ -z "$GH_TOKEN" ]; then echo "::error::Manca il secret DMRELEASES_TOKEN"; exit 1; fi
+      - uses: actions/checkout@v4
+        with:
+          repository: Layaris/DMReleases
+          token: ${{ secrets.DMRELEASES_TOKEN }}
+          path: dmreleases
+      - uses: actions/checkout@v4
+        with:
+          path: sigla-src
+          sparse-checkout: .github/scripts
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Crea la release
+        run: |
+          TAG="sigla-build-$BUILD_NUMBER"
+          ls -la artifacts
+          gh release create "$TAG" artifacts/* \
+            --repo Layaris/DMReleases \
+            --title "Sigla · build $BUILD_NUMBER" \
+            --notes-file dmreleases/sigla/release.md
+      - name: Aggiorna latest.json, novità e README
+        run: |
+          python3 sigla-src/.github/scripts/update_dmreleases.py \
+            --root dmreleases --build "$BUILD_NUMBER" --version "$VERSION" \
+            --apk "$(ls artifacts/*.apk 2>/dev/null | head -1 | xargs -r basename)" \
+            --ipa "$(ls artifacts/*.ipa 2>/dev/null | head -1 | xargs -r basename)"
+      - name: Commit su DMReleases
+        working-directory: dmreleases
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add sigla docs/sigla README.md
+          git commit -m "Sigla: build $BUILD_NUMBER pubblicata" || echo "Niente da aggiornare"
+          git push

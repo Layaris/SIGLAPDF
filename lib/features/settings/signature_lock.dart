@@ -38,15 +38,35 @@ class DeviceAuthenticator implements Authenticator {
 }
 
 /// Blocco delle firme: se attivo, serve l'autenticazione per vederle o usarle.
-/// Si richiude quando l'app va in background. Sul web è sempre disattivato.
+/// Si richiude quando l'app resta in background più di [grace] (le brevi uscite per
+/// scegliere un file o scattare una foto non lo richiudono). Sul web è sempre disattivato.
 class SignatureLock extends ChangeNotifier {
-  SignatureLock(this._settings, this._auth, {this.isWeb = kIsWeb});
+  SignatureLock(
+    this._settings,
+    this._auth, {
+    this.isWeb = kIsWeb,
+    this.grace = const Duration(seconds: 30),
+    DateTime Function()? clock,
+  }) : _clock = clock ?? DateTime.now;
 
   final SettingsRepository _settings;
   final Authenticator _auth;
   final bool isWeb;
+  final Duration grace;
+  final DateTime Function() _clock;
   bool _unlocked = false;
   Future<bool>? _pending;
+  DateTime? _hiddenAt;
+
+  /// L'app va in background.
+  void onHidden() => _hiddenAt ??= _clock();
+
+  /// L'app torna visibile: richiude se è passato più di [grace].
+  void onShown() {
+    final since = _hiddenAt;
+    _hiddenAt = null;
+    if (since != null && _clock().difference(since) > grace) lock();
+  }
 
   bool get enabled => !isWeb && _settings.value.biometricLock;
   bool get isLocked => enabled && !_unlocked;

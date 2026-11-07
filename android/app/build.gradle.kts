@@ -69,3 +69,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // Temi Theme.AppCompat usati da LaunchTheme/NormalTheme (richiesti da local_auth).
+    implementation("androidx.appcompat:appcompat:1.7.0")
+}

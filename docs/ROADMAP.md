@@ -40,11 +40,18 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ "Apri con" / condividi su Android
 
 ## Fase 7 — Rifinitura
-- ⬜ Rifinitura grafica e accessibilità
-- ⬜ Test completi
-- ⬜ Build web; workflow GitHub per APK e IPA pubblicati su DMReleases
+- ✅ Rifinitura grafica e accessibilità (icone, temi, aree di tocco ≥ 48, Semantics)
+- ✅ Test completi (unit e widget) e prove end-to-end nel browser con Playwright
+- ✅ Build web offline (pdf.js e CanvasKit inclusi)
+- ✅ Workflow GitHub manuale per APK e IPA pubblicati su DMReleases (non ancora eseguito)
+- ✅ Cartella `sigla/` e pagina del sito in DMReleases
+- ⬜ Prima build APK/IPA su GitHub (verifica reale di Android e iOS)
 
 ## Idee future
+- Pubblicare la web app (es. Cloudflare Pages) e linkarla da DMReleases
+- Avviso di nuova versione nell'app (legge `sigla/latest.json`)
+- Chiave API nel portachiavi sicuro (Keychain/Keystore) invece che in Hive
+- Font con più caratteri per i testi nel PDF (oggi Helvetica WinAnsi)
 - Documenti recenti
 - Font aggiuntivi per la firma scritta
 - "Apri con" su iOS (share extension e tipi documento)

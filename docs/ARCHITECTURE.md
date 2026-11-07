@@ -44,11 +44,25 @@ All'esportazione `PdfCoords` converte in punti PDF nello spazio di disegno della
 
 1. Il PDF viene caricato in byte (`file_picker`, "Apri con", scanner).
 2. `PdfService.inspect` legge numero pagine, dimensioni, rotazione, campi AcroForm.
-3. Le pagine vengono renderizzate al bisogno con `Printing.raster` e messe in cache.
+3. Le pagine vengono renderizzate al bisogno con `Printing.raster` (pdfium su mobile, pdf.js sul
+   web) da `PageRenderer`: massimo due render insieme, cache LRU di 10 pagine; ogni widget riceve
+   una copia (`ui.Image.clone`) che libera quando non serve più.
 4. L'utente aggiunge elementi; ogni modifica conclusa crea uno snapshot nella cronologia.
 5. `PdfService.export` riapre il PDF originale, compila i campi AcroForm, disegna gli elementi
    nel contenuto della pagina, appiattisce i campi (flatten) e salva i byte.
 6. Il file si salva (`FilePicker.saveFile`) o si condivide (`Printing.sharePdf`).
+
+## Blocco delle firme
+
+`SignatureLock` (con `Authenticator`, finto nei test) protegge libreria e inserimento delle firme.
+`AppLifecycleListener` chiama `onHidden`/`onShown`: il blocco si richiude solo se l'app è rimasta
+in background più di 30 secondi (scegliere un file o scattare una foto non lo richiude).
+
+## Ingressi dei documenti
+
+- `FileAccess.pickPdf` (file picker), `DocumentScanner` (cunning_document_scanner, mobile),
+  `imagesToPdf` (immagini → PDF, una pagina A4 per immagine), `ShareIntentSource` ("Apri con" /
+  "Condividi" su Android, avviato da `main.dart` con un `navigatorKey`).
 
 ## Rilevamento campi
 

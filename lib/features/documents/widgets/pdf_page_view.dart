@@ -35,6 +35,13 @@ class _PdfPageImageState extends State<PdfPageImage> {
     _image = widget.renderer.cached(widget.page);
   }
 
+  @override
+  void dispose() {
+    // L'immagine è una copia di questo widget: va liberata.
+    _image?.dispose();
+    super.dispose();
+  }
+
   void _ensure(double widthPx) {
     final dpr = MediaQuery.devicePixelRatioOf(context);
     // dpi necessari per avere un pixel immagine per pixel fisico, con un tetto.
@@ -43,12 +50,17 @@ class _PdfPageImageState extends State<PdfPageImage> {
     if (bucket <= _requested) return;
     _requested = bucket;
     widget.renderer.render(widget.page, bucket).then((img) {
-      if (!mounted) return;
+      if (!mounted) {
+        img?.dispose();
+        return;
+      }
       if (img != null) {
+        final old = _image;
         setState(() {
           _image = img;
           _failed = false;
         });
+        old?.dispose();
       } else if (_image == null) {
         // Niente spinner infinito: l'anteprima manca ma gli elementi si possono comunque posizionare.
         setState(() => _failed = true);

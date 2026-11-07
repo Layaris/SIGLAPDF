@@ -23,8 +23,8 @@ class _SiglaAppState extends State<SiglaApp> {
   @override
   void initState() {
     super.initState();
-    // Le firme si richiudono quando l'app va in background.
-    _lifecycle = AppLifecycleListener(onHide: services.lock.lock, onPause: services.lock.lock);
+    // Le firme si richiudono quando l'app resta in background (vedi SignatureLock.grace).
+    _lifecycle = AppLifecycleListener(onHide: services.lock.onHidden, onShow: services.lock.onShown);
   }
 
   @override

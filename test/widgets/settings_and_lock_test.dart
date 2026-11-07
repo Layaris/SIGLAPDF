@@ -53,6 +53,21 @@ void main() {
     expect(await web.lock.setEnabled(true), isFalse);
   });
 
+  test('blocco firme: le uscite brevi non richiudono, quelle lunghe sì', () async {
+    var now = DateTime(2026, 1, 1, 10);
+    final s = AppServices.inMemory(auth: FakeAuth());
+    final lock = SignatureLock(s.settings, FakeAuth(), isWeb: false, clock: () => now);
+    expect(await lock.setEnabled(true), isTrue);
+    lock.onHidden();
+    now = now.add(const Duration(seconds: 10));
+    lock.onShown();
+    expect(lock.isLocked, isFalse, reason: 'scelta di un file: 10 s');
+    lock.onHidden();
+    now = now.add(const Duration(minutes: 2));
+    lock.onShown();
+    expect(lock.isLocked, isTrue);
+  });
+
   testWidgets('firme bloccate: schermata di sblocco', (tester) async {
     final auth = FakeAuth();
     final s = AppServices.inMemory(auth: auth);

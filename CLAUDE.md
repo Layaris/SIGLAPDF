@@ -117,6 +117,18 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
   che non funziona.
 - **Immagini → PDF**: pagina A4 per immagine; l'orizzontale si imposta con `orientation`
   (syncfusion normalizza la `size`).
+- **Web offline**: pdf.js in `web/pdfjs/` + `--no-web-resources-cdn`. `dartPdfJsBaseUrl` deve
+  iniziare con `./` (bug trovato: con `pdfjs/` import() falliva e le pagine restavano vuote).
+  Se l'anteprima fallisce compare "Anteprima non disponibile" (mai spinner infinito).
+- **Memoria pagine**: cache LRU di 10 pagine con copie `ui.Image.clone` per widget.
+- **Blocco firme con margine di 30 s** in background (`SignatureLock.grace`).
+- **Android**: temi `Theme.AppCompat.DayNight.NoActionBar` + dipendenza appcompat (richiesto da
+  local_auth su Android ≤ 8). Splash e sfondo color carta.
+- **Barra strumenti dell'editor** trascinabile anche col mouse (`ScrollConfiguration` con tutti i
+  `PointerDeviceKind`), altrimenti sul web desktop gli strumenti in fondo non si raggiungono.
+- **Prove nel browser**: servire `build/web` (`python3 -m http.server`) e usare Playwright.
+  Con Playwright registrare `page.on('filechooser')` subito: `waitForEvent` attiva
+  l'intercettazione in modo asincrono e il primo clic può sfuggire (falso bug).
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -139,10 +151,15 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–6 completate (firme, editor PDF, profilo, AcroForm, riconoscimento locale e AI, backup,
-blocco biometrico, scanner, "Apri con"). Fase corrente: **7 — rifinitura, test, build, pubblicazione**.
+Vedi `docs/ROADMAP.md`. **Tutte le 7 fasi completate.** 107+ test verdi, `flutter analyze` pulito,
+build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
+esportazione, nessuna richiesta esterna). APK e IPA **non ancora compilati**: la prima verifica reale
+di Android/iOS sarà il workflow *Pubblica* su GitHub. In DMReleases la cartella `sigla/` è sul branch
+`claude/determined-keller-5b8xki` (da unire a main prima della prima pubblicazione).
 
 ## Prossimi passi
 
-1. Icone e nome app, rifinitura grafica, audit del codice.
-2. Build web locale e screenshot; workflow GitHub per APK/IPA; cartella sigla/ in DMReleases.
+1. Unire i branch in SIGLAPDF e DMReleases, configurare i secret (`DMRELEASES_TOKEN`, keystore).
+2. Lanciare *Pubblica* e correggere eventuali errori di build Android/iOS (non verificabili qui:
+   nel container non c'è l'SDK Android né Xcode).
+3. Idee future in `docs/ROADMAP.md`.
