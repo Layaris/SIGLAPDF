@@ -75,8 +75,8 @@ List<PlacedElement> proposalsToElements(
     }
     final text = p.value.trim();
     if (text.isEmpty) continue;
-    // Il testo sta sopra la linea: altezza pari alla riga (max 20 pt), con un piccolo rientro.
-    final h = math.min(r.height, 20.0);
+    // Il testo sta sopra la linea, grande circa come l'etichetta (riquadro 1,35× la riga, max 22 pt).
+    final h = math.min(r.height * 1.35, 22.0);
     final rect = Rect.fromLTWH(r.left + 2, r.bottom - h, math.max(r.width - 2, 10), h);
     out.add(PlacedElement(
       id: '',

@@ -206,30 +206,29 @@ class _Toolbar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
       child: ListenableBuilder(
         listenable: drawing,
-        builder: (context, _) => Wrap(
-          alignment: WrapAlignment.center,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          runSpacing: 4,
+        builder: (context, _) => Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _ColorDot(
-              color: InkColors.blue,
-              label: 'Blu',
-              selected: color == InkColors.blue,
-              onTap: () => onColor(InkColors.blue),
-            ),
-            _ColorDot(
-              color: InkColors.black,
-              label: 'Nero',
-              selected: color == InkColors.black,
-              onTap: () => onColor(InkColors.black),
-            ),
-            SizedBox(
-              width: 180,
-              child: Row(
-                children: [
-                  const Icon(Icons.line_weight, size: 20),
-                  Expanded(
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _ColorDot(
+                  color: InkColors.blue,
+                  label: 'Blu',
+                  selected: color == InkColors.blue,
+                  onTap: () => onColor(InkColors.blue),
+                ),
+                _ColorDot(
+                  color: InkColors.black,
+                  label: 'Nero',
+                  selected: color == InkColors.black,
+                  onTap: () => onColor(InkColors.black),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.line_weight, size: 20),
+                Flexible(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 220),
                     child: Slider(
                       value: width,
                       min: 1.5,
@@ -239,23 +238,29 @@ class _Toolbar extends StatelessWidget {
                       onChanged: onWidth,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            IconButton(
-              tooltip: 'Annulla',
-              onPressed: drawing.canUndo ? drawing.undo : null,
-              icon: const Icon(Icons.undo),
-            ),
-            IconButton(
-              tooltip: 'Ripeti',
-              onPressed: drawing.canRedo ? drawing.redo : null,
-              icon: const Icon(Icons.redo),
-            ),
-            TextButton.icon(
-              onPressed: drawing.isEmpty ? null : drawing.clear,
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Cancella'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Annulla',
+                  onPressed: drawing.canUndo ? drawing.undo : null,
+                  icon: const Icon(Icons.undo),
+                ),
+                IconButton(
+                  tooltip: 'Ripeti',
+                  onPressed: drawing.canRedo ? drawing.redo : null,
+                  icon: const Icon(Icons.redo),
+                ),
+                const SizedBox(width: 8),
+                TextButton.icon(
+                  onPressed: drawing.isEmpty ? null : drawing.clear,
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Cancella'),
+                ),
+              ],
             ),
           ],
         ),

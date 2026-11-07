@@ -102,7 +102,7 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Compila auto'));
+    await tester.tap(find.text('Compila'));
     await tester.pumpAndSettle();
     expect(find.text('Come cercare i campi?'), findsOneWidget);
     await tester.tap(find.text('AI avanzata'));

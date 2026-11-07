@@ -55,7 +55,7 @@ void main() {
       ProfileField.taxCode: 'RSSMRA80B01F839X',
     }));
     final page = await pumpEditor(tester, services);
-    await tester.tap(find.text('Compila auto'));
+    await tester.tap(find.text('Compila'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 300)));
     await tester.pumpAndSettle();
     expect(find.byType(AutofillPreviewPage), findsOneWidget);

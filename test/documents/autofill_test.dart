@@ -51,6 +51,7 @@ void main() {
     final text = els.firstWhere((e) => e.type == ElementType.text);
     expect(text.text, 'Mario Rossi');
     expect(text.rect.bottom, closeTo(0.12, 0.001), reason: 'allineato al fondo dello spazio');
+    expect(text.rect.h, greaterThan(0.02), reason: 'un po\' più alto della riga trovata');
     final sign = els.firstWhere((e) => e.type == ElementType.signature);
     final px = sign.rect.toRect(pages[0].visual);
     expect(px.width / px.height, closeTo(2, 0.01));

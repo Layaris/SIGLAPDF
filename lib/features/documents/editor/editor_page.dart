@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
@@ -512,7 +513,7 @@ class EditorPageState extends State<EditorPage> {
 
   List<Widget> extraTools(BuildContext context) => [
         if (_hasForm) _ToolButton(icon: Icons.list_alt_outlined, label: 'Campi', onTap: openFields),
-        _ToolButton(icon: Icons.auto_fix_high_outlined, label: 'Compila auto', onTap: autoDetect),
+        _ToolButton(icon: Icons.auto_fix_high_outlined, label: 'Compila', onTap: autoDetect),
         _ToolButton(icon: Icons.badge_outlined, label: 'Dati profilo', onTap: insertProfileData),
       ];
 
@@ -704,10 +705,14 @@ class EditorPageState extends State<EditorPage> {
         top: false,
         child: SizedBox(
           height: 76,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            children: children,
+          // La barra scorre anche trascinando con il mouse (web e desktop).
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              children: children,
+            ),
           ),
         ),
       ),
