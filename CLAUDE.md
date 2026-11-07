@@ -80,6 +80,11 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 ## Decisioni prese (e perché)
 
 - **`asStringMap` non tocca i `TypedData`**: i PNG letti da Hive restano `Uint8List`.
+- **Scontorno**: soglia di Otsu sui grigi; l'inchiostro è pieno fino alla soglia e sfuma
+  sopra (Otsu con poca firma e molta carta mette la soglia vicino all'inchiostro). Le foto
+  vengono raddrizzate (EXIF) e ridotte a 1400 px; su mobile l'elaborazione va in `compute`.
+- **Font corsivo**: Great Vibes (OFL), unico font incluso.
+- **`FileAccess` astratto** (`core/utils/file_access.dart`) per sostituire il file picker nei test.
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -102,9 +107,10 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–2 completate (base, libreria firme, disegno). Fase corrente: **3 — import immagine e firma scritta**.
+Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–3 completate (base, libreria firme, disegno, import con scontorno, firma scritta).
+Fase corrente: **4 — PDF: apertura, render, elementi, esportazione**.
 
 ## Prossimi passi
 
-1. Import immagine con scontorno (Otsu) e firma scritta con font corsivo.
-2. Apertura PDF, render, elementi, esportazione con flatten.
+1. Apertura PDF, render, elementi, esportazione con flatten.
+2. Schermata profilo, AcroForm, riconoscimento locale dei campi.

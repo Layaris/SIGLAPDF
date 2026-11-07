@@ -1,21 +1,32 @@
 import 'package:flutter/widgets.dart';
 
+import '../features/profile/profile_repository.dart';
 import '../features/settings/settings_repository.dart';
 import '../features/signatures/signature_repository.dart';
 import 'storage/key_value_store.dart';
+import 'utils/file_access.dart';
 
 /// Contenitore dei repository e servizi dell'app.
 /// Passato all'albero con [AppScope]; nei test si costruisce con store in memoria.
 class AppServices {
-  AppServices({required this.settings, required this.signatures});
+  AppServices({
+    required this.settings,
+    required this.signatures,
+    required this.profile,
+    this.files = const SystemFileAccess(),
+  });
 
   final SettingsRepository settings;
   final SignatureRepository signatures;
+  final ProfileRepository profile;
+  final FileAccess files;
 
   /// Servizi con archivio in memoria (test e anteprime).
-  factory AppServices.inMemory() => AppServices(
+  factory AppServices.inMemory({FileAccess files = const SystemFileAccess()}) => AppServices(
         settings: SettingsRepository(MemoryKeyValueStore()),
         signatures: SignatureRepository(MemoryKeyValueStore()),
+        profile: ProfileRepository(MemoryKeyValueStore()),
+        files: files,
       );
 }
 

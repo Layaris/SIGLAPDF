@@ -14,9 +14,9 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Disegno a mano: Bezier, pressione, colore, spessore, undo/redo, cancella, PNG ritagliato
 
 ## Fase 3 — Import e firma scritta
-- ⬜ Import da immagine con scontorno (Otsu, trasparenza, bordi morbidi, ritaglio, ricolorazione)
-- ⬜ Anteprima con cursore della soglia
-- ⬜ Firma scritta con font corsivo incluso
+- ✅ Import da immagine con scontorno (Otsu, trasparenza, bordi morbidi, ritaglio, ricolorazione)
+- ✅ Anteprima con cursore della soglia
+- ✅ Firma scritta con font corsivo incluso
 
 ## Fase 4 — PDF
 - ⬜ Apertura da file picker
@@ -27,7 +27,7 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ⬜ Esportazione con flatten, salva o condividi
 
 ## Fase 5 — Profilo e campi
-- ⬜ Profilo con campi fissi e personalizzati
+- 🔶 Profilo con campi fissi e personalizzati (modello e archivio fatti, manca la schermata)
 - ⬜ Inserimento rapido di un dato del profilo
 - ⬜ AcroForm: rilevamento, compilazione, autocompilazione
 - ⬜ Riconoscimento locale dei campi non segnalati con anteprima
