@@ -107,7 +107,7 @@ con SideStore, AltStore o Sideloadly.
 Le build si fanno **solo a mano** su GitHub Actions (workflow *Pubblica*,
 `.github/workflows/release.yml`, *Actions › Pubblica › Run workflow*) e vengono pubblicate nel
 repository [Layaris/DMReleases](https://github.com/Layaris/DMReleases) come `sigla-build-N`
-(N = numero dell'esecuzione). Opzioni: APK, IPA, pubblica (se spenta restano solo gli artifact).
+(N = numero dell'esecuzione). Opzioni: APK, IPA (per ora spenta: si lascia così), pubblica (se spenta restano solo gli artifact).
 
 Cosa fa: analisi e test → APK (Linux) e/o IPA (macOS) → release `Sigla · build N` con il testo di
 `sigla/release.md` → aggiorna `sigla/latest.json`, `docs/sigla/latest.json`, `sigla/CHANGELOG.md`

@@ -10,9 +10,9 @@ on:
         type: boolean
         default: true
       ios:
-        description: Compila l'IPA iPhone (non firmato, per sideload; runner macOS)
+        description: Compila l'IPA iPhone (non firmato, per sideload; runner macOS, costa di più). Per ora lasciare spento.
         type: boolean
-        default: true
+        default: false
       publish:
         description: Pubblica su DMReleases (se no, solo artifact scaricabili)
         type: boolean
