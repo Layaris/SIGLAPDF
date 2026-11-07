@@ -160,7 +160,8 @@ In DMReleases la cartella `sigla/` è già su `main` (Layaris/DMReleases#1).
 
 ## Prossimi passi
 
-1. L'utente configura i secret seguendo `docs/PUBBLICAZIONE.md` (token e keystore).
+1. L'utente crea token e password dal sito (`docs/PUBBLICAZIONE.md`); il keystore lo crea il workflow
+   `keystore.yml` (Crea chiave di firma) e lo salva nei secret con il token.
 2. Lanciare *Pubblica* (solo Android) e correggere eventuali errori di build (non verificabili qui:
    nel container non c'è l'SDK Android).
 3. Idee future in `docs/ROADMAP.md`.
