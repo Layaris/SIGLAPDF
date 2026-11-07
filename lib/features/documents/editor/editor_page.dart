@@ -101,6 +101,20 @@ class EditorPageState extends State<EditorPage> {
 
   ElementFactory _factory(int page) => ElementFactory(ctrl.info.pages[page].visual);
 
+  /// Centro libero per un nuovo elemento: se il punto è occupato scende un po' alla volta.
+  Offset _freeCenter(int page, [Offset? start]) {
+    var c = start ?? _visibleCenter(page);
+    for (var i = 0; i < 12; i++) {
+      final busy = ctrl.elementsOn(page).any((e) {
+        final r = e.rect;
+        return c.dx > r.x - 0.02 && c.dx < r.right + 0.02 && c.dy > r.y - 0.015 && c.dy < r.bottom + 0.015;
+      });
+      if (!busy) return c;
+      c = Offset(c.dx, c.dy + 0.05 > 0.95 ? 0.1 : c.dy + 0.05);
+    }
+    return c;
+  }
+
   int get _inkColor => InkColors.fromName(AppScope.of(context).settings.value.inkColor).toARGB32();
 
   void _snack(String msg) => ScaffoldMessenger.of(context)
@@ -128,7 +142,7 @@ class EditorPageState extends State<EditorPage> {
     ctrl.add(
       type: kind == SignatureKind.initials ? ElementType.initials : ElementType.signature,
       page: page,
-      rect: f.imageRect(chosen.aspectRatio, widthPts: kind == SignatureKind.initials ? 70 : 160, center: _visibleCenter(page)),
+      rect: f.imageRect(chosen.aspectRatio, widthPts: kind == SignatureKind.initials ? 70 : 160, center: _freeCenter(page)),
       image: chosen.png,
     );
   }
@@ -178,7 +192,7 @@ class EditorPageState extends State<EditorPage> {
     ctrl.add(
       type: ElementType.text,
       page: page,
-      rect: _factory(page).textRect(text, center: _visibleCenter(page)),
+      rect: _factory(page).textRect(text, center: _freeCenter(page)),
       text: text,
       color: _inkColor,
     );
@@ -190,7 +204,7 @@ class EditorPageState extends State<EditorPage> {
     ctrl.add(
       type: ElementType.date,
       page: page,
-      rect: _factory(page).textRect(text, center: _visibleCenter(page)),
+      rect: _factory(page).textRect(text, center: _freeCenter(page)),
       text: text,
       color: _inkColor,
     );
@@ -198,7 +212,7 @@ class EditorPageState extends State<EditorPage> {
 
   void addMark(ElementType type) {
     final page = currentPage;
-    ctrl.add(type: type, page: page, rect: _factory(page).squareRect(center: _visibleCenter(page)), color: _inkColor);
+    ctrl.add(type: type, page: page, rect: _factory(page).squareRect(center: _freeCenter(page)), color: _inkColor);
   }
 
   /// Sigla tutte le pagine: replica la sigla selezionata, oppure mette la predefinita

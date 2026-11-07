@@ -27,6 +27,7 @@ class PdfPageImage extends StatefulWidget {
 class _PdfPageImageState extends State<PdfPageImage> {
   ui.Image? _image;
   double _requested = 0;
+  bool _failed = false;
 
   @override
   void initState() {
@@ -42,7 +43,16 @@ class _PdfPageImageState extends State<PdfPageImage> {
     if (bucket <= _requested) return;
     _requested = bucket;
     widget.renderer.render(widget.page, bucket).then((img) {
-      if (mounted && img != null) setState(() => _image = img);
+      if (!mounted) return;
+      if (img != null) {
+        setState(() {
+          _image = img;
+          _failed = false;
+        });
+      } else if (_image == null) {
+        // Niente spinner infinito: l'anteprima manca ma gli elementi si possono comunque posizionare.
+        setState(() => _failed = true);
+      }
     });
   }
 
@@ -54,7 +64,18 @@ class _PdfPageImageState extends State<PdfPageImage> {
       final img = _image;
       return DecoratedBox(
         decoration: BoxDecoration(color: Colors.white, border: Border.all(color: c.line)),
-        child: img == null
+        child: img == null && _failed
+            ? Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.broken_image_outlined, color: c.secondary),
+                    const SizedBox(height: 8),
+                    Text('Anteprima non disponibile', style: TextStyle(color: c.secondary)),
+                  ],
+                ),
+              )
+            : img == null
             ? Center(
                 child: SizedBox(
                   width: 24,

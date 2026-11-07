@@ -23,7 +23,8 @@
   <link rel="manifest" href="manifest.json">
 
   <!-- pdf.js incluso nella web app (render delle pagine offline, nessuna richiesta a CDN). -->
-  <script>var dartPdfJsBaseUrl = "pdfjs/";</script>
+  <!-- Deve iniziare con "./": import() rifiuta gli specificatori "nudi" come "pdfjs/". -->
+  <script>var dartPdfJsBaseUrl = "./pdfjs/";</script>
   <style>
     html, body { margin: 0; background: #F6F7F9; }
     @media (prefers-color-scheme: dark) { html, body { background: #0F1420; } }

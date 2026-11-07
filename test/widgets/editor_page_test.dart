@@ -102,6 +102,22 @@ void main() {
     await tester.binding.setSurfaceSize(null);
   });
 
+  testWidgets('editor: due elementi aggiunti di seguito non si sovrappongono', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1000));
+    final page = _editor(buildPlainPdf(pages: 1));
+    await tester.pumpWidget(wrapWithServices(AppServices.inMemory(), page));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 2; i++) {
+      await tester.tap(find.text('Data'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Fatto'));
+      await tester.pumpAndSettle();
+    }
+    final a = page.controller.elements[0].rect, b = page.controller.elements[1].rect;
+    expect(b.y, greaterThanOrEqualTo(a.bottom), reason: 'il secondo scende sotto il primo');
+    await tester.binding.setSurfaceSize(null);
+  });
+
   testWidgets('editor: sigla tutte le pagine con la sigla predefinita', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1000));
     final services = AppServices.inMemory();
