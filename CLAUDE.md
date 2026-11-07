@@ -85,6 +85,18 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
   vengono raddrizzate (EXIF) e ridotte a 1400 px; su mobile l'elaborazione va in `compute`.
 - **Font corsivo**: Great Vibes (OFL), unico font incluso.
 - **`FileAccess` astratto** (`core/utils/file_access.dart`) per sostituire il file picker nei test.
+- **Editor**: pagine in una `ListView` verticale, zoom con pulsanti (100–300%) e scorrimento
+  orizzontale quando serve; niente pinch per non litigare con il trascinamento degli elementi.
+  Nuovi elementi al centro della parte visibile della pagina corrente. Cronologia a snapshot
+  immutabili (max 100); un gesto di trascinamento = un passo (`beginChange`/`endChange`).
+- **Rotazione pagine**: syncfusion disegna le pagine caricate nello spazio non ruotato; prima di
+  disegnare si applica `PdfCoords.visualTransform` (traslazione + rotazione) così le coordinate
+  visive finiscono al posto giusto. Verificato da test con estrazione del testo.
+- **Testo nel PDF**: Helvetica standard (WinAnsi). `sanitizeForStandardFont` sostituisce i
+  caratteri non supportati. Corpo = altezza riquadro × 0,72, ridotto se non entra in larghezza.
+- **Render pagine**: `PageRenderer` con cache e massimo due render in parallelo; dpi in base alla
+  larghezza mostrata (tetto 220). Attenzione: in `whenComplete` non restituire il future stesso
+  (deadlock trovato e corretto).
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -107,10 +119,11 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–3 completate (base, libreria firme, disegno, import con scontorno, firma scritta).
-Fase corrente: **4 — PDF: apertura, render, elementi, esportazione**.
+Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–4 completate (base, firme, import, firma scritta, editor PDF con esportazione).
+Fase corrente: **5 — profilo, AcroForm, riconoscimento locale dei campi**.
 
 ## Prossimi passi
 
-1. Apertura PDF, render, elementi, esportazione con flatten.
-2. Schermata profilo, AcroForm, riconoscimento locale dei campi.
+1. Schermata profilo, pannello campi AcroForm con autocompilazione, inserimento rapido dati.
+2. Riconoscimento locale dei campi non segnalati con anteprima.
+3. AI opzionale, backup, biometria, scanner, "Apri con".

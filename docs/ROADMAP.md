@@ -19,12 +19,12 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Firma scritta con font corsivo incluso
 
 ## Fase 4 — PDF
-- ⬜ Apertura da file picker
-- ⬜ Render pagine, zoom e scorrimento
-- ⬜ Elementi: firma, sigla, testo, data, spunta, croce (trascina, ridimensiona, elimina)
-- ⬜ Sigla tutte le pagine
-- ⬜ Undo/redo nell'editor
-- ⬜ Esportazione con flatten, salva o condividi
+- ✅ Apertura da file picker
+- ✅ Render pagine, zoom e scorrimento
+- ✅ Elementi: firma, sigla, testo, data, spunta, croce (trascina, ridimensiona, elimina)
+- ✅ Sigla tutte le pagine
+- ✅ Undo/redo nell'editor
+- ✅ Esportazione con flatten, salva o condividi
 
 ## Fase 5 — Profilo e campi
 - 🔶 Profilo con campi fissi e personalizzati (modello e archivio fatti, manca la schermata)
