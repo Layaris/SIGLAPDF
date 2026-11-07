@@ -11,6 +11,7 @@ import 'features/settings/settings_repository.dart';
 import 'features/settings/signature_lock.dart';
 import 'features/signatures/signature_repository.dart';
 import 'services/document_sources.dart';
+import 'services/field_detection/ocr.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ Future<void> main() async {
     lock: SignatureLock(settings, DeviceAuthenticator()),
     signatures: SignatureRepository(signatureStore),
     profile: ProfileRepository(profileStore),
+    ocr: createDeviceOcr(),
   );
   final navigatorKey = GlobalKey<NavigatorState>();
   runApp(SiglaApp(services: services, navigatorKey: navigatorKey));

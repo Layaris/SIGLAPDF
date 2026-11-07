@@ -8,6 +8,43 @@ import '../pdf_service.dart';
 import 'field_detector.dart';
 import 'label_dictionary.dart';
 
+/// Parola con il suo riquadro in punti sulla pagina visiva. [glyphs] (facoltativo) ha un riquadro
+/// per ogni carattere di [text]; se manca, i caratteri si distribuiscono sulla larghezza.
+class WordBox {
+  const WordBox(this.text, this.rect, {this.glyphs});
+  final String text;
+  final Rect rect;
+  final List<Rect>? glyphs;
+}
+
+/// Trova i campi su una pagina a partire da righe di parole (da testo PDF o da OCR).
+List<DetectedField> detectFieldsInLines(List<List<WordBox>> lines, PdfPageInfo info, int page, {String source = 'locale'}) =>
+    const LocalTextFieldDetector()._detectOnLines(
+      lines.map(_Line.fromWords).whereType<_Line>().toList(),
+      info,
+      page,
+      source: source,
+    );
+
+/// Righe di parole in coordinate visive estratte dal testo di una pagina PDF (syncfusion).
+List<List<WordBox>> pdfTextLines(PdfTextExtractor extractor, int page, PdfCoords coords) {
+  final raw = extractor.extractTextLines(startPageIndex: page, endPageIndex: page);
+  return [
+    for (final l in raw)
+      [
+        for (final w in l.wordCollection)
+          if (w.text.isNotEmpty)
+            WordBox(
+              w.text,
+              coords.unrotatedRectToVisual(w.bounds),
+              glyphs: w.glyphs.length == w.text.length
+                  ? [for (final g in w.glyphs) coords.unrotatedRectToVisual(g.bounds)]
+                  : null,
+            ),
+      ],
+  ];
+}
+
 /// Riconoscimento locale e offline: righe di testo con coordinate (syncfusion) +
 /// dizionario delle etichette + ricerca dello spazio vuoto collegato.
 class LocalTextFieldDetector implements FieldDetector {
@@ -26,14 +63,14 @@ class LocalTextFieldDetector implements FieldDetector {
       final out = <DetectedField>[];
       for (final p in input.targetPages) {
         if (p < 0 || p >= input.pages.length) continue;
-        List<TextLine> raw;
+        final info = input.pages[p];
+        List<List<WordBox>> lines;
         try {
-          raw = extractor.extractTextLines(startPageIndex: p, endPageIndex: p);
+          lines = pdfTextLines(extractor, p, info.coords);
         } catch (_) {
           continue;
         }
-        final info = input.pages[p];
-        final found = _detectOnLines(raw.map((l) => _Line.from(l, info.coords)).whereType<_Line>().toList(), info, p);
+        final found = detectFieldsInLines(lines, info, p, source: name);
         for (final f in found) {
           final clash = input.avoid.any((a) => a.$1 == p && _overlap(a.$2, f.rect) > 0.3);
           final dup = out.any((o) => o.page == p && _overlap(o.rect, f.rect) > 0.6);
@@ -54,7 +91,7 @@ class LocalTextFieldDetector implements FieldDetector {
     return small <= 0 ? 0 : ix * iy / small;
   }
 
-  List<DetectedField> _detectOnLines(List<_Line> lines, PdfPageInfo info, int page) {
+  List<DetectedField> _detectOnLines(List<_Line> lines, PdfPageInfo info, int page, {required String source}) {
     if (lines.isEmpty) return const [];
     final size = info.visual;
     lines.sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
@@ -102,7 +139,7 @@ class LocalTextFieldDetector implements FieldDetector {
           kind: label.kind,
           label: labelText,
           rect: NormRect.fromRect(box, size).clamped(minSize: 0.005),
-          source: name,
+          source: source,
           lineHeight: h / size.height,
         ));
       }
@@ -154,20 +191,20 @@ class _Line {
   final String text;
   final String norm;
 
-  static _Line? from(TextLine line, PdfCoords coords) {
+  static _Line? fromWords(List<WordBox> words) {
     final chars = <_Char>[];
     Rect? prev;
-    for (final w in line.wordCollection) {
+    for (final w in words) {
       final t = w.text;
       if (t.isEmpty) continue;
-      final wb = coords.unrotatedRectToVisual(w.bounds);
+      final wb = w.rect;
       if (prev != null) {
         chars.add(_Char(' ', Rect.fromLTRB(prev.right, wb.top, math.max(prev.right, wb.left), wb.bottom)));
       }
       final glyphs = w.glyphs;
-      if (glyphs.length == t.length) {
+      if (glyphs != null && glyphs.length == t.length) {
         for (var i = 0; i < t.length; i++) {
-          chars.add(_Char(t[i], coords.unrotatedRectToVisual(glyphs[i].bounds)));
+          chars.add(_Char(t[i], glyphs[i]));
         }
       } else {
         final step = wb.width / t.length;

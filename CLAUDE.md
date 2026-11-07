@@ -47,7 +47,7 @@ lib/
   services/
     pdf_service.dart        render, esportazione con flatten, AcroForm
     signature_processing.dart   scontorno (Otsu), ritaglio, ricolorazione, tratti
-    field_detection/        FieldDetector + motore locale + motore AI
+    field_detection/        FieldDetector + motore locale (testo + OCR ML Kit) + motore AI
     crypto_backup.dart      formato .sigla cifrato, versioni e migrazioni
 test/                       unit test per i servizi, widget test per le schermate
 docs/                       ROADMAP.md, ARCHITECTURE.md
@@ -129,6 +129,12 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 - **Prove nel browser**: servire `build/web` (`python3 -m http.server`) e usare Playwright.
   Con Playwright registrare `page.on('filechooser')` subito: `waitForEvent` attiva
   l'intercettazione in modo asincrono e il primo clic può sfuggire (falso bug).
+- **OCR sul dispositivo (Android)**: `DeviceFieldDetector` usa il testo del PDF; per le pagine con
+  meno di 3 parole (scansioni) renderizza la pagina a 200 dpi in RGBA e la legge con Google ML Kit
+  (`InputImage.fromBitmap`, modello latino incluso nell'APK, offline). Le parole OCR (pixel) diventano
+  `WordBox` in punti e passano dallo stesso dizionario (`detectFieldsInLines`). ML Kit importa
+  `dart:io`: è isolato con import condizionale (`ocr.dart` → `ocr_factory_io.dart` / `_stub.dart`),
+  così la web app compila. Su iOS per ora disattivato (non provato; ML Kit può richiedere iOS 15.5+).
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 

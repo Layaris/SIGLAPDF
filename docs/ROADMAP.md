@@ -47,6 +47,10 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Cartella `sigla/` e pagina del sito in DMReleases
 - ⬜ Prima build APK/IPA su GitHub (verifica reale di Android e iOS)
 
+## Fase 8 — Dopo il rilascio
+- ✅ OCR sul dispositivo per i PDF scansionati (Android, Google ML Kit, offline)
+- ✅ Chiave di firma creata su GitHub (workflow "Crea chiave di firma")
+
 ## Idee future
 - Pubblicare la web app (es. Cloudflare Pages) e linkarla da DMReleases
 - Avviso di nuova versione nell'app (legge `sigla/latest.json`)

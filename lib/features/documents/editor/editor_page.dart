@@ -8,8 +8,8 @@ import 'package:printing/printing.dart';
 import '../../../core/app_services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/field_detection/anthropic_detector.dart';
+import '../../../services/field_detection/device_detector.dart';
 import '../../../services/field_detection/field_detector.dart';
-import '../../../services/field_detection/local_text_detector.dart';
 import '../../../services/pdf_service.dart';
 import '../../settings/signature_lock.dart';
 import '../../signatures/new_signature_sheet.dart';
@@ -408,8 +408,10 @@ class EditorPageState extends State<EditorPage> {
   /// Sceglie il motore: locale (predefinito) oppure AI se attivata nelle impostazioni.
   /// Restituisce null se l'utente annulla.
   Future<List<FieldDetector>?> chooseDetectors() async {
-    final s = AppScope.of(context).settings.value;
-    if (!s.aiEnabled) return const [LocalTextFieldDetector()];
+    final services = AppScope.of(context);
+    final s = services.settings.value;
+    final device = DeviceFieldDetector(ocr: services.ocr);
+    if (!s.aiEnabled) return [device];
     final useAi = await showModalBottomSheet<bool>(
       context: context,
       builder: (context) => SafeArea(
@@ -424,7 +426,9 @@ class EditorPageState extends State<EditorPage> {
               ListTile(
                 leading: const Icon(Icons.offline_bolt_outlined),
                 title: const Text('Sul dispositivo'),
-                subtitle: const Text('Offline. Funziona con i PDF che contengono testo.'),
+                subtitle: Text(device.hasOcr
+                    ? 'Offline. Legge anche i documenti scansionati.'
+                    : 'Offline. Funziona con i PDF che contengono testo.'),
                 onTap: () => Navigator.pop(context, false),
               ),
               ListTile(
@@ -439,7 +443,7 @@ class EditorPageState extends State<EditorPage> {
       ),
     );
     if (useAi == null) return null;
-    if (!useAi) return const [LocalTextFieldDetector()];
+    if (!useAi) return [device];
     if (s.aiApiKey.trim().isEmpty) {
       _snack('Inserisci la chiave API in Impostazioni › Riconoscimento AI');
       return null;
@@ -483,9 +487,9 @@ class EditorPageState extends State<EditorPage> {
     if (!mounted) return;
     if (found.isEmpty) {
       _snack(error ??
-          (services.settings.value.aiEnabled
+          (services.settings.value.aiEnabled || services.ocr != null
               ? 'Nessun campo riconosciuto. Puoi aggiungere i testi a mano.'
-              : 'Nessun campo riconosciuto. Per i PDF scansionati attiva il riconoscimento AI in Impostazioni.'));
+              : 'Nessun campo riconosciuto. Se è una scansione, usa l\'app Android o il riconoscimento AI.'));
       return;
     }
     final signature = services.signatures.defaultOf(SignatureKind.signature);

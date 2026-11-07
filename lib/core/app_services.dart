@@ -4,6 +4,7 @@ import '../features/profile/profile_repository.dart';
 import '../features/settings/settings_repository.dart';
 import '../features/settings/signature_lock.dart';
 import '../features/signatures/signature_repository.dart';
+import '../services/field_detection/ocr.dart';
 import 'storage/key_value_store.dart';
 import 'utils/file_access.dart';
 
@@ -16,6 +17,7 @@ class AppServices {
     required this.profile,
     required this.lock,
     this.files = const SystemFileAccess(),
+    this.ocr,
   });
 
   final SettingsRepository settings;
@@ -24,8 +26,16 @@ class AppServices {
   final SignatureLock lock;
   final FileAccess files;
 
+  /// OCR sul dispositivo per i PDF scansionati (Android), null dove non c'è.
+  final OcrEngine? ocr;
+
   /// Servizi con archivio in memoria (test e anteprime).
-  factory AppServices.inMemory({FileAccess files = const SystemFileAccess(), Authenticator? auth, bool isWeb = false}) {
+  factory AppServices.inMemory({
+    FileAccess files = const SystemFileAccess(),
+    Authenticator? auth,
+    bool isWeb = false,
+    OcrEngine? ocr,
+  }) {
     final settings = SettingsRepository(MemoryKeyValueStore());
     return AppServices(
       settings: settings,
@@ -33,6 +43,7 @@ class AppServices {
       profile: ProfileRepository(MemoryKeyValueStore()),
       lock: SignatureLock(settings, auth ?? _AlwaysYes(), isWeb: isWeb),
       files: files,
+      ocr: ocr,
     );
   }
 }

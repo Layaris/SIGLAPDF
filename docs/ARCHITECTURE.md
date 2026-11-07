@@ -71,6 +71,9 @@ Interfaccia `FieldDetector` → `Future<List<DetectedField>> detect(DetectionInp
 - `LocalTextFieldDetector`: estrae le righe con coordinate (`PdfTextExtractor`), cerca le
   etichette con un dizionario italiano/inglese e trova lo spazio da compilare
   (sequenze `___` o `....`, spazio dopo `:` fino a fine riga, spazio sotto l'etichetta).
+- `DeviceFieldDetector` (quello usato dall'app): per le pagine con testo usa la stessa logica del
+  motore locale; per le pagine scansionate, su Android, renderizza la pagina e la legge con l'OCR
+  di Google ML Kit sul telefono, poi applica il dizionario alle parole lette. Niente rete.
 - `AnthropicFieldDetector`: render della pagina in PNG e richiesta all'API Messages; la
   risposta deve essere solo JSON con etichetta, tipo e riquadro normalizzato.
 
