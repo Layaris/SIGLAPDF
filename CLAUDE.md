@@ -153,13 +153,14 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 Vedi `docs/ROADMAP.md`. **Tutte le 7 fasi completate.** 107+ test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
-esportazione, nessuna richiesta esterna). APK e IPA **non ancora compilati**: la prima verifica reale
-di Android/iOS sarà il workflow *Pubblica* su GitHub. In DMReleases la cartella `sigla/` è sul branch
-`claude/determined-keller-5b8xki` (da unire a main prima della prima pubblicazione).
+esportazione, nessuna richiesta esterna). APK **non ancora compilato**: la prima verifica reale di
+Android sarà il workflow *Pubblica*. L'IPA per ora non si fa (opzione spenta di default).
+In SIGLAPDF il branch `claude/determined-keller-5b8xki` è l'unico ed è quello predefinito.
+In DMReleases la cartella `sigla/` è già su `main` (Layaris/DMReleases#1).
 
 ## Prossimi passi
 
-1. Unire i branch in SIGLAPDF e DMReleases, configurare i secret (`DMRELEASES_TOKEN`, keystore).
-2. Lanciare *Pubblica* e correggere eventuali errori di build Android/iOS (non verificabili qui:
-   nel container non c'è l'SDK Android né Xcode).
+1. L'utente configura i secret seguendo `docs/PUBBLICAZIONE.md` (token e keystore).
+2. Lanciare *Pubblica* (solo Android) e correggere eventuali errori di build (non verificabili qui:
+   nel container non c'è l'SDK Android).
 3. Idee future in `docs/ROADMAP.md`.
