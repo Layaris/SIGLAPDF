@@ -84,6 +84,20 @@ class PdfCoords {
     };
   }
 
+  /// Inverso di [visualToUnrotated].
+  Offset unrotatedToVisual(Offset u) {
+    final w = unrotated.width, h = unrotated.height;
+    return switch (rotation) {
+      90 => Offset(h - u.dy, u.dx),
+      180 => Offset(w - u.dx, h - u.dy),
+      270 => Offset(u.dy, w - u.dx),
+      _ => u,
+    };
+  }
+
+  /// Rettangolo in punti non ruotati → rettangolo in punti visivi.
+  Rect unrotatedRectToVisual(Rect r) => Rect.fromPoints(unrotatedToVisual(r.topLeft), unrotatedToVisual(r.bottomRight));
+
   /// Rettangolo normalizzato → rettangolo in punti nello spazio non ruotato della pagina.
   Rect toUnrotatedPoints(NormRect r) {
     final v = toVisualPoints(r);

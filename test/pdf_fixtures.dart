@@ -50,3 +50,26 @@ String extractAllText(Uint8List bytes) {
   doc.dispose();
   return text;
 }
+
+/// Modulo senza campi AcroForm, con etichette e spazi da compilare come nei moduli reali.
+Uint8List buildUnmarkedFormPdf() {
+  final doc = PdfDocument();
+  doc.pageSettings.margins.all = 0;
+  doc.pageSettings.size = const Size(595, 842);
+  final g = doc.pages.add().graphics;
+  final f = PdfStandardFont(PdfFontFamily.helvetica, 11);
+  void t(String s, double x, double y) => g.drawString(s, f, bounds: Rect.fromLTWH(x, y, 520, 16));
+  t('DICHIARAZIONE SOSTITUTIVA', 50, 40);
+  t('Il/La sottoscritto/a ______________________________________', 50, 90);
+  t('nato/a a ____________________ il ______________', 50, 120);
+  t('Codice fiscale:', 50, 150);
+  t('Residente in ______________ Via ______________________ CAP _______', 50, 180);
+  t('Telefono:', 50, 210);
+  t('Email:', 300, 210);
+  t('Dichiara di aver letto e compreso quanto sopra riportato.', 50, 250);
+  t('Luogo e data ..................................', 50, 300);
+  t('Firma', 380, 300);
+  final bytes = Uint8List.fromList(doc.saveSync());
+  doc.dispose();
+  return bytes;
+}
