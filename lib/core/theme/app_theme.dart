@@ -54,8 +54,9 @@ class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        toolbarHeight: 60,
         // Dimensione esplicita: nel tema base i TextStyle non hanno ancora le misure.
-        titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w600, color: c.ink, letterSpacing: -0.2),
+        titleTextStyle: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: c.ink, letterSpacing: -0.4),
       ),
       cardTheme: CardThemeData(
         color: c.surface,

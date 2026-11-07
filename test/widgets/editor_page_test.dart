@@ -143,7 +143,7 @@ void main() {
     final files = FakeFiles(pdf: PickedBytes('modulo.pdf', buildPlainPdf(pages: 1)));
     final services = AppServices.inMemory(files: files);
     await tester.pumpWidget(wrapWithServices(services, const DocumentsPage()));
-    expect(find.text('Firma o compila un PDF'), findsOneWidget);
+    expect(find.textContaining('Firma o compila'), findsOneWidget);
     await tester.tap(find.text('Apri PDF'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));

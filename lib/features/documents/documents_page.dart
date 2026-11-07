@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_services.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/ink_illustrations.dart';
 import '../../core/widgets/page_frame.dart';
 import '../../services/document_sources.dart';
 import '../../services/images_to_pdf.dart';
@@ -39,20 +40,38 @@ class _DocumentsPageState extends State<DocumentsPage> {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
     final t = Theme.of(context).textTheme;
+    final wide = MediaQuery.sizeOf(context).width >= 720;
+    final hero = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Firma o compila\nun PDF', style: t.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.1)),
+              const SizedBox(height: 6),
+              SizedBox(height: 34, width: 190, child: SignatureFlourish(color: c.accent, strokeWidth: 2.6)),
+              const SizedBox(height: 10),
+              Text(
+                'Aggiungi firma, sigla, testo e data, compila i moduli dal tuo profilo ed esporta il PDF.',
+                style: t.bodyMedium?.copyWith(color: c.secondary, height: 1.4),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 16),
+        Transform.rotate(angle: 0.06, child: SignedSheetIllustration(size: wide ? const Size(132, 166) : const Size(96, 122))),
+      ],
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('Documenti')),
       body: PageFrame(
-        maxWidth: 640,
+        maxWidth: 680,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           children: [
-            Text('Firma o compila un PDF', style: t.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-              'Apri un documento, aggiungi firma, sigla, testo o data, poi esporta il PDF. Il file non lascia il dispositivo.',
-              style: t.bodyMedium?.copyWith(color: c.secondary),
-            ),
-            const SizedBox(height: 24),
+            hero,
+            const SizedBox(height: 28),
             _ActionCard(
               icon: Icons.file_open_outlined,
               title: 'Apri PDF',
@@ -62,6 +81,30 @@ class _DocumentsPageState extends State<DocumentsPage> {
               onTap: _openPdf,
             ),
             ...extraActions(context),
+            const SizedBox(height: 20),
+            Text('Come funziona', style: t.titleMedium),
+            const SizedBox(height: 12),
+            const _Steps(),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: c.success.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.lock_outline, color: c.success, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Tutto resta su questo dispositivo: nessun account, nessun cloud.',
+                      style: TextStyle(color: c.ink, height: 1.3),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -173,6 +216,40 @@ class _ActionCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _Steps extends StatelessWidget {
+  const _Steps();
+
+  @override
+  Widget build(BuildContext context) {
+    final c = AppColors.of(context);
+    const steps = [
+      ('Apri', 'un PDF, una scansione o delle foto'),
+      ('Firma', 'e compila: trascina, ridimensiona, conferma'),
+      ('Esporta', 'il PDF e salvalo o condividilo'),
+    ];
+    return Column(
+      children: [
+        for (var i = 0; i < steps.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                StepDot(i + 1),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text.rich(TextSpan(children: [
+                    TextSpan(text: steps[i].$1, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    TextSpan(text: ' ${steps[i].$2}', style: TextStyle(color: c.secondary)),
+                  ])),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 }

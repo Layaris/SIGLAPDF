@@ -10,12 +10,16 @@ class EmptyState extends StatelessWidget {
     required this.title,
     required this.message,
     this.actions = const [],
+    this.illustration,
   });
 
   final IconData icon;
   final String title;
   final String message;
   final List<Widget> actions;
+
+  /// Illustrazione al posto dell'icona.
+  final Widget? illustration;
 
   @override
   Widget build(BuildContext context) {
@@ -29,9 +33,9 @@ class EmptyState extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 48, color: c.secondary),
+              illustration ?? Icon(icon, size: 48, color: c.secondary),
               const SizedBox(height: 20),
-              Text(title, style: t.titleLarge, textAlign: TextAlign.center),
+              Text(title, style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w700), textAlign: TextAlign.center),
               const SizedBox(height: 8),
               Text(message, style: t.bodyMedium?.copyWith(color: c.secondary), textAlign: TextAlign.center),
               if (actions.isNotEmpty) ...[

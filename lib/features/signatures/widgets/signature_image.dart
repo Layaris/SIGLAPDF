@@ -14,6 +14,8 @@ class SignatureImage extends StatelessWidget {
         color: Colors.white,
         padding: padding,
         alignment: Alignment.center,
+        // Linea della firma, come sui moduli di carta.
+        foregroundDecoration: const _SignatureLineDecoration(),
         child: Image.memory(
           signature.png,
           fit: BoxFit.contain,
@@ -22,4 +24,23 @@ class SignatureImage extends StatelessWidget {
           semanticLabel: '${signature.kind.label}: ${signature.name}',
         ),
       );
+}
+
+class _SignatureLineDecoration extends Decoration {
+  const _SignatureLineDecoration();
+  @override
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) => _LinePainter();
+}
+
+class _LinePainter extends BoxPainter {
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final size = configuration.size;
+    if (size == null) return;
+    final y = offset.dy + size.height * 0.84;
+    final x0 = offset.dx + size.width * 0.08, x1 = offset.dx + size.width * 0.92;
+    canvas.drawLine(Offset(x0, y), Offset(x1, y), Paint()
+      ..color = const Color(0xFFE3E6EB)
+      ..strokeWidth = 1);
+  }
 }

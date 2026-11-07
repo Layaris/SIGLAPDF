@@ -137,6 +137,60 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Semantics(header: true, child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
       );
 
+  /// Intestazione: iniziali, nome e quanti dati sono compilati.
+  Widget _header(BuildContext context) {
+    final c = AppColors.of(context);
+    final t = Theme.of(context).textTheme;
+    final name = [_fields[ProfileField.firstName]!.text.trim(), _fields[ProfileField.lastName]!.text.trim()]
+        .where((s) => s.isNotEmpty)
+        .join(' ');
+    final initials = name.split(' ').where((s) => s.isNotEmpty).map((s) => s[0].toUpperCase()).take(2).join();
+    final filled = _fields.values.where((f) => f.text.trim().isNotEmpty).length;
+    final total = _fields.length;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: c.accent.withValues(alpha: 0.12)),
+              child: initials.isEmpty
+                  ? Icon(Icons.person_outline, color: c.accent)
+                  : Text(initials, style: TextStyle(color: c.accent, fontSize: 20, fontWeight: FontWeight.w700)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name.isEmpty ? 'Il tuo profilo' : name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(
+                    filled == total ? 'Profilo completo' : '$filled di $total dati compilati',
+                    style: TextStyle(color: c.secondary, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: filled / total,
+                      minHeight: 6,
+                      backgroundColor: c.line,
+                      color: filled == total ? c.success : c.accent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
@@ -162,8 +216,13 @@ class _ProfilePageState extends State<ProfilePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
           children: [
+            ListenableBuilder(
+              listenable: Listenable.merge(_fields.values.toList()),
+              builder: (context, _) => _header(context),
+            ),
+            const SizedBox(height: 10),
             Text(
-              'Questi dati servono per compilare i moduli in un tocco. Restano solo su questo dispositivo.',
+              'Servono per compilare i moduli in un tocco. Restano solo su questo dispositivo.',
               style: TextStyle(color: c.secondary),
             ),
             _section('Persona'),

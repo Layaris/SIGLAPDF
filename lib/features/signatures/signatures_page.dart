@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/ink_illustrations.dart';
 import 'new_signature_sheet.dart';
 import 'signature_model.dart';
 import 'signature_repository.dart';
@@ -43,6 +44,17 @@ class SignaturesPage extends StatelessWidget {
           if (repo.isEmpty) {
             return EmptyState(
               icon: Icons.gesture,
+              illustration: Container(
+                width: 260,
+                height: 120,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.of(context).line),
+                ),
+                child: const SignatureFlourish(),
+              ),
               title: 'Crea la tua firma',
               message: 'Disegnala, importala da una foto o scrivila. Resta solo su questo dispositivo.',
               actions: [
@@ -189,13 +201,19 @@ class SignatureCard extends StatelessWidget {
                   child: Text(signature.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall),
                 ),
                 if (signature.isDefault)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                  Container(
+                    margin: const EdgeInsets.only(left: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: c.success.withValues(alpha: 0.10),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, size: 16, color: c.success),
+                        Icon(Icons.check, size: 14, color: c.success),
                         const SizedBox(width: 4),
-                        Text('Predefinita', style: TextStyle(color: c.success, fontSize: 13)),
+                        Text('Predefinita', style: TextStyle(color: c.success, fontSize: 12.5, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),

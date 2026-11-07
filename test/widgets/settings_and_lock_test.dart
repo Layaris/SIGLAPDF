@@ -90,6 +90,8 @@ void main() {
     await tester.pump();
     expect(s.settings.value.inkColor, 'black');
 
+    await tester.ensureVisible(find.text('Usa il riconoscimento AI'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Usa il riconoscimento AI'));
     await tester.pumpAndSettle();
     expect(s.settings.value.aiEnabled, isTrue);
