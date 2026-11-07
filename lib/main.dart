@@ -5,9 +5,12 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'core/app_services.dart';
 import 'core/storage/key_value_store.dart';
+import 'features/documents/editor/editor_page.dart';
 import 'features/profile/profile_repository.dart';
 import 'features/settings/settings_repository.dart';
+import 'features/settings/signature_lock.dart';
 import 'features/signatures/signature_repository.dart';
+import 'services/document_sources.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,10 +19,22 @@ Future<void> main() async {
   final settingsStore = await HiveKeyValueStore.open('settings');
   final signatureStore = await HiveKeyValueStore.open('signatures');
   final profileStore = await HiveKeyValueStore.open('profile');
+  final settings = SettingsRepository(settingsStore);
   final services = AppServices(
-    settings: SettingsRepository(settingsStore),
+    settings: settings,
+    lock: SignatureLock(settings, DeviceAuthenticator()),
     signatures: SignatureRepository(signatureStore),
     profile: ProfileRepository(profileStore),
   );
-  runApp(SiglaApp(services: services));
+  final navigatorKey = GlobalKey<NavigatorState>();
+  runApp(SiglaApp(services: services, navigatorKey: navigatorKey));
+  // "Apri con" / "Condividi" un PDF (Android).
+  await ShareIntentSource().start((pdf) async {
+    // All'avvio la UI potrebbe non essere ancora pronta: si aspetta il navigatore (max 5 s).
+    for (var i = 0; i < 50 && navigatorKey.currentContext == null; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    final ctx = navigatorKey.currentContext;
+    if (ctx != null && ctx.mounted) await openPdfEditor(ctx, name: pdf.name, bytes: pdf.bytes);
+  });
 }

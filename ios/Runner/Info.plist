@@ -34,25 +34,6 @@
 	<string>Sigla accede alle foto per importare l'immagine di una firma o un documento.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Sigla usa Face ID per proteggere le tue firme.</string>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>PDF</string>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>LSHandlerRank</key>
-			<string>Alternate</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>com.adobe.pdf</string>
-			</array>
-		</dict>
-	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
-	<key>UIFileSharingEnabled</key>
-	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

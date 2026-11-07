@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 
 import '../../../core/app_services.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/field_detection/anthropic_detector.dart';
 import '../../../services/field_detection/field_detector.dart';
 import '../../../services/field_detection/local_text_detector.dart';
 import '../../../services/pdf_service.dart';
@@ -389,13 +390,54 @@ class EditorPageState extends State<EditorPage> {
     if (picked != null) await addText(preset: picked);
   }
 
-  /// Motori di riconoscimento attivi. Il motore AI si aggiunge nella fase 6.
-  List<FieldDetector> detectors() => const [LocalTextFieldDetector()];
+  /// Sceglie il motore: locale (predefinito) oppure AI se attivata nelle impostazioni.
+  /// Restituisce null se l'utente annulla.
+  Future<List<FieldDetector>?> chooseDetectors() async {
+    final s = AppScope.of(context).settings.value;
+    if (!s.aiEnabled) return const [LocalTextFieldDetector()];
+    final useAi = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Come cercare i campi?', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(Icons.offline_bolt_outlined),
+                title: const Text('Sul dispositivo'),
+                subtitle: const Text('Offline. Funziona con i PDF che contengono testo.'),
+                onTap: () => Navigator.pop(context, false),
+              ),
+              ListTile(
+                leading: const Icon(Icons.auto_awesome_outlined),
+                title: const Text('AI avanzata'),
+                subtitle: const Text('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.'),
+                onTap: () => Navigator.pop(context, true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (useAi == null) return null;
+    if (!useAi) return const [LocalTextFieldDetector()];
+    if (s.aiApiKey.trim().isEmpty) {
+      _snack('Inserisci la chiave API in Impostazioni › Riconoscimento AI');
+      return null;
+    }
+    return [AnthropicFieldDetector(apiKey: s.aiApiKey, model: s.aiModel)];
+  }
 
   /// "Compila automaticamente": trova i campi non segnalati e mostra l'anteprima.
   Future<void> autoDetect() async {
     final services = AppScope.of(context);
     final profile = services.profile.value;
+    final detectors = await chooseDetectors();
+    if (detectors == null || !mounted) return;
     final nav = Navigator.of(context);
     unawaited(showDialog<void>(
       context: context,
@@ -411,17 +453,24 @@ class EditorPageState extends State<EditorPage> {
       for (final f in ctrl.info.fields)
         if (f.rect != null && f.page >= 0) (f.page, f.rect!),
     ];
-    for (final d in detectors()) {
+    for (final d in detectors) {
       try {
         found.addAll(await d.detect(DetectionInput(pdf: ctrl.bytes, pages: ctrl.info.pages, avoid: avoid)));
-      } catch (e) {
-        error = e.toString();
+      } on AiDetectionException catch (e) {
+        error = e.message;
+      } on PdfOpenException catch (e) {
+        error = e.message;
+      } catch (_) {
+        error = 'Riconoscimento non riuscito.';
       }
     }
     nav.pop();
     if (!mounted) return;
     if (found.isEmpty) {
-      _snack(error ?? 'Nessun campo riconosciuto. Puoi aggiungere testi a mano o provare il riconoscimento AI.');
+      _snack(error ??
+          (services.settings.value.aiEnabled
+              ? 'Nessun campo riconosciuto. Puoi aggiungere i testi a mano.'
+              : 'Nessun campo riconosciuto. Per i PDF scansionati attiva il riconoscimento AI in Impostazioni.'));
       return;
     }
     final signature = services.signatures.defaultOf(SignatureKind.signature);

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../features/profile/profile_repository.dart';
 import '../features/settings/settings_repository.dart';
+import '../features/settings/signature_lock.dart';
 import '../features/signatures/signature_repository.dart';
 import 'storage/key_value_store.dart';
 import 'utils/file_access.dart';
@@ -13,21 +14,27 @@ class AppServices {
     required this.settings,
     required this.signatures,
     required this.profile,
+    required this.lock,
     this.files = const SystemFileAccess(),
   });
 
   final SettingsRepository settings;
   final SignatureRepository signatures;
   final ProfileRepository profile;
+  final SignatureLock lock;
   final FileAccess files;
 
   /// Servizi con archivio in memoria (test e anteprime).
-  factory AppServices.inMemory({FileAccess files = const SystemFileAccess()}) => AppServices(
-        settings: SettingsRepository(MemoryKeyValueStore()),
-        signatures: SignatureRepository(MemoryKeyValueStore()),
-        profile: ProfileRepository(MemoryKeyValueStore()),
-        files: files,
-      );
+  factory AppServices.inMemory({FileAccess files = const SystemFileAccess(), Authenticator? auth, bool isWeb = false}) {
+    final settings = SettingsRepository(MemoryKeyValueStore());
+    return AppServices(
+      settings: settings,
+      signatures: SignatureRepository(MemoryKeyValueStore()),
+      profile: ProfileRepository(MemoryKeyValueStore()),
+      lock: SignatureLock(settings, auth ?? _AlwaysYes(), isWeb: isWeb),
+      files: files,
+    );
+  }
 }
 
 class AppScope extends InheritedWidget {
@@ -43,4 +50,11 @@ class AppScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppScope oldWidget) => services != oldWidget.services;
+}
+
+class _AlwaysYes implements Authenticator {
+  @override
+  Future<bool> isAvailable() async => true;
+  @override
+  Future<bool> authenticate(String reason) async => true;
 }

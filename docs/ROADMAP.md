@@ -33,11 +33,11 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Riconoscimento locale dei campi non segnalati con anteprima
 
 ## Fase 6 — Extra
-- ⬜ Riconoscimento AI opzionale (API Anthropic)
-- ⬜ Backup cifrato .sigla (unisci / sostituisci)
-- ⬜ Blocco biometrico delle firme (mobile)
-- ⬜ Scanner documenti (mobile) e immagini → PDF (web)
-- ⬜ "Apri con" / condividi su Android
+- ✅ Riconoscimento AI opzionale (API Anthropic)
+- ✅ Backup cifrato .sigla (unisci / sostituisci)
+- ✅ Blocco biometrico delle firme (mobile)
+- ✅ Scanner documenti (mobile) e immagini → PDF (web)
+- ✅ "Apri con" / condividi su Android
 
 ## Fase 7 — Rifinitura
 - ⬜ Rifinitura grafica e accessibilità
@@ -47,4 +47,5 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 ## Idee future
 - Documenti recenti
 - Font aggiuntivi per la firma scritta
-- Condivisione iOS (share extension)
+- "Apri con" su iOS (share extension e tipi documento)
+- pdf.js incluso nella web app per il render offline

@@ -105,6 +105,18 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 - **AcroForm + profilo**: abbinamento per nome del campo (`kindForFieldName`, es. `codiceFiscale`,
   `data_nascita`, `CF`); si compilano solo i campi vuoti. La digitazione nello stesso campo è un
   solo passo di annulla.
+- **AI (Anthropic)**: chiamata HTTP diretta (non esiste un SDK Dart ufficiale) a `/v1/messages`,
+  `anthropic-version: 2026-10-21`, immagine PNG a 110 dpi, risposta vincolata con
+  `output_config.format` (`json_schema`). Sul web header `anthropic-dangerous-direct-browser-access`.
+  Massimo 10 pagine per richiesta. Prima di usarla l'editor chiede il motore e avvisa dell'invio.
+- **Blocco firme**: `SignatureLock` + `Authenticator` (fake nei test). Si richiude con
+  `AppLifecycleListener` (onHide/onPause). `biometricOnly: false` per permettere il PIN.
+- **Impostazioni**: le sezioni non sono `const`, altrimenti non si ricostruiscono al cambio.
+- **"Apri con"** solo Android (`receive_sharing_intent`, VIEW e SEND `application/pdf`). Su iOS
+  niente `CFBundleDocumentTypes` finché non c'è la share extension, per non mostrare un'opzione
+  che non funziona.
+- **Immagini → PDF**: pagina A4 per immagine; l'orizzontale si imposta con `orientation`
+  (syncfusion normalizza la `size`).
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -127,10 +139,10 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–5 completate (base, firme, editor PDF, profilo, AcroForm, riconoscimento locale).
-Fase corrente: **6 — AI opzionale, backup cifrato, blocco biometrico, scanner, "Apri con"**.
+Vedi `docs/ROADMAP.md` per il dettaglio. Fasi 1–6 completate (firme, editor PDF, profilo, AcroForm, riconoscimento locale e AI, backup,
+blocco biometrico, scanner, "Apri con"). Fase corrente: **7 — rifinitura, test, build, pubblicazione**.
 
 ## Prossimi passi
 
-1. AI opzionale (AnthropicFieldDetector), backup .sigla, blocco biometrico, scanner, "Apri con".
-2. Rifinitura grafica, impostazioni complete, icone, build web, workflow GitHub, DMReleases.
+1. Icone e nome app, rifinitura grafica, audit del codice.
+2. Build web locale e screenshot; workflow GitHub per APK/IPA; cartella sigla/ in DMReleases.

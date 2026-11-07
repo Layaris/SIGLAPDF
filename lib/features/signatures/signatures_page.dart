@@ -15,7 +15,16 @@ class SignaturesPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repo = AppScope.of(context).signatures;
+    final services = AppScope.of(context);
+    final repo = services.signatures;
+    final lock = services.lock;
+    return ListenableBuilder(
+      listenable: lock,
+      builder: (context, _) => lock.isLocked ? _Locked(onUnlock: lock.unlock) : _scaffold(context, repo),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, SignatureRepository repo) {
     return Scaffold(
       appBar: AppBar(title: const Text('Firme')),
       floatingActionButton: ListenableBuilder(
@@ -206,4 +215,22 @@ class SignatureCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _Locked extends StatelessWidget {
+  const _Locked({required this.onUnlock});
+  final Future<bool> Function() onUnlock;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('Firme')),
+        body: EmptyState(
+          icon: Icons.lock_outline,
+          title: 'Firme protette',
+          message: 'Sblocca con impronta, volto o PIN per vedere e usare le tue firme.',
+          actions: [
+            FilledButton.icon(onPressed: onUnlock, icon: const Icon(Icons.lock_open), label: const Text('Sblocca')),
+          ],
+        ),
+      );
 }

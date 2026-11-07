@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/app_services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/page_frame.dart';
+import '../../services/document_sources.dart';
+import '../../services/images_to_pdf.dart';
 import 'editor/editor_page.dart';
 
 /// Punto di partenza: apri un PDF da firmare o compilare.
@@ -65,8 +68,52 @@ class _DocumentsPageState extends State<DocumentsPage> {
     );
   }
 
-  /// Azioni aggiuntive (scanner, immagini → PDF): fase 6.
-  List<Widget> extraActions(BuildContext context) => const [];
+  static const _scanner = DocumentScanner();
+
+  String _stamp() {
+    final d = DateTime.now();
+    String two(int v) => v.toString().padLeft(2, '0');
+    return '${d.year}${two(d.month)}${two(d.day)}-${two(d.hour)}${two(d.minute)}';
+  }
+
+  Future<void> _fromImages(Future<List<Uint8List>> Function() source, String prefix) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final images = await source();
+      if (images.isEmpty || !mounted) return;
+      final pdf = await imagesToPdf(images);
+      if (!mounted) return;
+      await openPdfEditor(context, name: '$prefix-${_stamp()}.pdf', bytes: pdf);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossibile creare il PDF dalle immagini.')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  List<Widget> extraActions(BuildContext context) => [
+        if (_scanner.isSupported)
+          _ActionCard(
+            icon: Icons.document_scanner_outlined,
+            title: 'Scansiona documento',
+            subtitle: 'Foto con correzione della prospettiva',
+            busy: _busy,
+            onTap: () => _fromImages(_scanner.scan, 'scansione'),
+          ),
+        _ActionCard(
+          icon: Icons.photo_library_outlined,
+          title: 'Da immagini',
+          subtitle: 'Trasforma foto o immagini in un PDF',
+          busy: _busy,
+          onTap: () => _fromImages(() async {
+            final files = await AppScope.of(context).files.pickImages();
+            return [for (final f in files) f.bytes];
+          }, 'immagini'),
+        ),
+      ];
 }
 
 class _ActionCard extends StatelessWidget {
