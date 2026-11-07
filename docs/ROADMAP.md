@@ -51,6 +51,26 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ OCR sul dispositivo per i PDF scansionati (Android, Google ML Kit, offline)
 - ✅ Chiave di firma creata su GitHub (workflow "Crea chiave di firma")
 
+## Fase 9 — Grafica
+- ✅ Illustrazioni (firma animata, foglio firmato), schede firme con linea, intestazione profilo
+
+## Migliorie proposte (in ordine di utilità)
+1. ⬜ **Documenti recenti**: elenco degli ultimi PDF esportati, da riaprire o ricondividere
+2. ⬜ **Modelli di posizionamento**: ricordare dove si firma un modulo ricorrente e riapplicarlo
+3. ⬜ **Firma con data automatica**: firma + data sotto in un solo elemento
+4. ⬜ **Sigla tutte: scelta dell'angolo** (basso destra/sinistra, alto) e salto della pagina con la firma
+5. ⬜ **Pinch per lo zoom** e miniature delle pagine per saltare tra le pagine
+6. ⬜ **Più profili** (es. tuo e di un familiare) da scegliere in "Compila"
+7. ⬜ **Riordina, ruota ed elimina pagine**, unisci più PDF
+8. ⬜ **Scrittura a mano libera ed evidenziatore** sul PDF
+9. ⬜ **Campi a scelta multipla** nel riconoscimento (caselle ☐ accanto a "Sì/No", "M/F")
+10. ⬜ **Avviso di nuova versione** nell'app (legge `sigla/latest.json` su DMReleases)
+11. ⬜ **Pubblicare la web app** (Cloudflare Pages) e linkarla da DMReleases
+12. ⬜ **Chiave API nel portachiavi sicuro** (Keychain/Keystore) invece che in Hive
+13. ⬜ **Font con più caratteri** per i testi nel PDF (oggi Helvetica WinAnsi)
+14. ⬜ **"Apri con" su iPhone** (share extension) quando si farà l'IPA
+15. ⬜ **Inglese** come seconda lingua
+
 ## Idee future
 - Pubblicare la web app (es. Cloudflare Pages) e linkarla da DMReleases
 - Avviso di nuova versione nell'app (legge `sigla/latest.json`)
