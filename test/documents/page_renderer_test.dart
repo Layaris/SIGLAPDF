@@ -53,4 +53,28 @@ void main() {
     expect(results.every((i) => i != null), isTrue);
     expect(identical(results[0], results[1]), isFalse, reason: 'ognuno ha la sua copia');
   });
+
+  test('render a bassa risoluzione in corso: una richiesta più nitida non riceve la miniatura', () async {
+    final dpis = <double>[];
+    Future<ui.Image?> raster(Uint8List pdf, int page, double dpi) async {
+      dpis.add(dpi);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      final side = dpi.round();
+      final r = ui.PictureRecorder();
+      ui.Canvas(r).drawRect(ui.Rect.fromLTWH(0, 0, side.toDouble(), 1), ui.Paint());
+      return r.endRecording().toImageSync(side, 1);
+    }
+
+    final renderer = PageRenderer(Uint8List(0), rasterizer: raster);
+    final thumb = renderer.render(0, 48);
+    final page = renderer.render(0, 192);
+    final small = (await thumb)!, big = (await page)!;
+    expect(small.width, 48);
+    expect(big.width, 192, reason: 'prima riceveva l\'immagine a 48 dpi e restava sfocata');
+    expect(dpis, [48, 192]);
+    // Una seconda richiesta a 48 dpi durante quella nitida si accoda a quella.
+    small.dispose();
+    big.dispose();
+    renderer.dispose();
+  });
 }

@@ -196,21 +196,33 @@ class PdfService {
     Map<String, String> formValues = const {},
     bool flatten = true,
   }) async {
-    final doc = openPdf(source);
+    var doc = openPdf(source);
     try {
       _fillForm(doc, formValues);
-      for (final e in elements) {
-        if (e.page < 0 || e.page >= doc.pages.count) continue;
-        _drawElement(doc.pages[e.page], e);
-      }
       if (flatten && doc.form.fields.count > 0) {
+        // syncfusion appiattisce i campi al salvataggio, disegnandoli sopra il contenuto: prima si salva
+        // il modulo appiattito, poi si disegnano firme e testi, così restano sopra i campi (anche colorati).
         doc.form.setDefaultAppearance(false);
         doc.form.flattenAllFields();
+        final flat = Uint8List.fromList(await doc.save());
+        doc.dispose();
+        doc = openPdf(flat);
       }
+      _drawElements(doc, elements);
       final bytes = await doc.save();
       return Uint8List.fromList(bytes);
     } finally {
       doc.dispose();
+    }
+  }
+
+  void _drawElements(PdfDocument doc, List<PlacedElement> elements) {
+    // Stessa immagine (es. la sigla su tutte le pagine) incorporata una volta sola.
+    final bitmaps = <Uint8List, PdfBitmap>{};
+    PdfBitmap bitmap(Uint8List png) => bitmaps.putIfAbsent(png, () => PdfBitmap(png));
+    for (final e in elements) {
+      if (e.page < 0 || e.page >= doc.pages.count) continue;
+      _drawElement(doc.pages[e.page], e, bitmap);
     }
   }
 
@@ -242,7 +254,7 @@ class PdfService {
     }
   }
 
-  void _drawElement(PdfPage page, PlacedElement e) {
+  void _drawElement(PdfPage page, PlacedElement e, PdfBitmap Function(Uint8List png) bitmap) {
     final coords = PdfCoords(page.size, _rotationOf(page));
     final g = page.graphics;
     final state = g.save();
@@ -257,14 +269,14 @@ class PdfService {
       case ElementType.signature:
       case ElementType.initials:
         final img = e.image;
-        if (img != null && img.isNotEmpty) g.drawImage(PdfBitmap(img), r);
+        if (img != null && img.isNotEmpty) g.drawImage(bitmap(img), r);
       case ElementType.signedDate:
         final img = e.image;
         final top = Rect.fromLTWH(r.left, r.top, r.width, r.height * signedDateSplit);
         final bottom = Rect.fromLTWH(r.left, top.bottom, r.width, r.height - top.height);
         if (img != null && img.isNotEmpty) {
           // Firma centrata nella parte alta, proporzioni conservate.
-          final bmp = PdfBitmap(img);
+          final bmp = bitmap(img);
           final ar = bmp.width / bmp.height;
           var w = top.width, h = w / ar;
           if (h > top.height) {

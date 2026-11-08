@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sigla/core/utils/pdf_coords.dart';
@@ -107,6 +108,30 @@ void main() {
     final out = await service.export(buildFormPdf(), formValues: {'nome': 'Anna'}, flatten: false);
     final info = service.inspect(out);
     expect(info.fields.firstWhere((f) => f.name == 'nome').value, 'Anna');
+  });
+
+  test('la stessa immagine su molte pagine viene incorporata una volta sola', () async {
+    final png = tinyPng();
+    final src = buildPlainPdf(pages: 30);
+    PlacedElement on(int page, List<int> bytes) => PlacedElement(
+        id: 'p$page', type: ElementType.initials, page: page, rect: const NormRect(0.8, 0.9, 0.1, 0.05), image: Uint8List.fromList(bytes));
+    final shared = await const PdfService().export(src, elements: [for (var i = 0; i < 30; i++) PlacedElement(
+        id: 's$i', type: ElementType.initials, page: i, rect: const NormRect(0.8, 0.9, 0.1, 0.05), image: png)]);
+    final copies = await const PdfService().export(src, elements: [for (var i = 0; i < 30; i++) on(i, png)]);
+    expect(shared.length, lessThan(copies.length), reason: 'una sola immagine invece di 30');
+  });
+
+  test('firma sopra un campo AcroForm appiattito: il modulo si esporta senza campi', () async {
+    // L'ordine (prima il flatten, poi le firme) è verificato a mano con pdftoppm: un campo con sfondo
+    // grigio copriva la firma. Qui si controlla che il doppio passaggio non perda niente.
+    final out = await const PdfService().export(buildFormPdf(), formValues: const {'nome': 'Mario'}, elements: [
+      PlacedElement(id: 'f', type: ElementType.signature, page: 0, rect: const NormRect(0.1, 0.12, 0.3, 0.05), image: tinyPng()),
+    ]);
+    final doc = PdfDocument(inputBytes: out);
+    expect(doc.form.fields.count, 0);
+    expect(doc.pages.count, 2);
+    expect(PdfTextExtractor(doc).extractText(startPageIndex: 0, endPageIndex: 0), contains('Mario'));
+    doc.dispose();
   });
 
   test('sanitizeForStandardFont', () {

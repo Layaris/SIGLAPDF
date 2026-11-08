@@ -29,6 +29,7 @@ class PageRenderer {
   final Map<int, ui.Image> _cache = {};
   final Map<int, double> _cachedDpi = {};
   final Map<int, Future<ui.Image?>> _inFlight = {};
+  final Map<int, double> _inFlightDpi = {};
   int _running = 0;
   final List<Completer<void>> _waiting = [];
   bool _disposed = false;
@@ -48,11 +49,23 @@ class PageRenderer {
   Future<ui.Image?> render(int page, double dpi) {
     final have = _cachedDpi[page];
     if (have != null && have >= dpi * 0.85 && _cache.containsKey(page)) return Future.value(cached(page));
+    ui.Image? copy(ui.Image? img) => img == null || _disposed ? null : img.clone();
+    final current = _inFlight[page];
+    // Un render già in corso va bene solo se abbastanza nitido (es. la miniatura a 48 dpi non basta
+    // per la pagina grande): altrimenti se ne accoda uno nuovo, che parte quando finisce l'altro.
+    if (current != null && (_inFlightDpi[page] ?? 0) >= dpi * 0.85) return current.then(copy);
+    final job = current == null ? _run(page, dpi) : current.then((_) => _run(page, dpi), onError: (Object _) => _run(page, dpi));
+    late final Future<ui.Image?> shared;
     // Attenzione: la callback non deve restituire il future (whenComplete lo aspetterebbe).
-    final shared = _inFlight[page] ??= _run(page, dpi).whenComplete(() {
-      _inFlight.remove(page);
+    shared = job.whenComplete(() {
+      if (identical(_inFlight[page], shared)) {
+        _inFlight.remove(page);
+        _inFlightDpi.remove(page);
+      }
     });
-    return shared.then((img) => img == null || _disposed ? null : img.clone());
+    _inFlight[page] = shared;
+    _inFlightDpi[page] = dpi;
+    return shared.then(copy);
   }
 
   Future<ui.Image?> _run(int page, double dpi) async {
