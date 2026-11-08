@@ -55,9 +55,13 @@ class FormFieldInfo {
 
 /// Informazioni sul documento aperto.
 class PdfDocumentInfo {
-  const PdfDocumentInfo({required this.pages, required this.fields});
+  const PdfDocumentInfo({required this.pages, required this.fields, this.fingerprint});
   final List<PdfPageInfo> pages;
   final List<FormFieldInfo> fields;
+
+  /// Impronta del modulo (numero di pagine + testo delle prime pagine), null se non c'è testo.
+  /// Serve a riconoscere un modulo già compilato per riapplicarne il modello.
+  final String? fingerprint;
 
   List<FormFieldInfo> get fillableFields => fields.where((f) => f.isFillable).toList();
 }
@@ -105,9 +109,18 @@ class PdfService {
           PdfPageInfo(index: i, unrotated: doc.pages[i].size, rotation: _rotationOf(doc.pages[i])),
       ];
       if (pages.isEmpty) throw const PdfOpenException('Il PDF non ha pagine.');
-      return PdfDocumentInfo(pages: pages, fields: _readFields(doc, pages));
+      return PdfDocumentInfo(pages: pages, fields: _readFields(doc, pages), fingerprint: _fingerprint(doc, pages.length));
     } finally {
       doc.dispose();
+    }
+  }
+
+  String? _fingerprint(PdfDocument doc, int pageCount) {
+    try {
+      final text = PdfTextExtractor(doc).extractText(startPageIndex: 0, endPageIndex: pageCount > 1 ? 1 : 0);
+      return documentFingerprint(text, pageCount);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -348,4 +361,27 @@ String sanitizeForStandardFont(String s) {
     }
   }
   return b.toString();
+}
+
+/// Impronta di un modulo: solo lettere e cifre del testo (minuscole, al massimo 4000), più il numero
+/// di pagine, ridotte con FNV-1a a 64 bit. Null se il testo è troppo poco (es. scansioni).
+String? documentFingerprint(String text, int pageCount) {
+  final b = StringBuffer();
+  for (final r in text.toLowerCase().runes) {
+    if ((r >= 0x30 && r <= 0x39) || (r >= 0x61 && r <= 0x7a) || r >= 0xc0) b.writeCharCode(r);
+    if (b.length >= 4000) break;
+  }
+  final norm = b.toString();
+  if (norm.length < 40) return null;
+  // Due FNV-1a a 32 bit. La moltiplicazione per il primo FNV (2^24 + 0x193) è scomposta così
+  // che nessun valore intermedio superi 2^53: sul web gli interi sono double e darebbero
+  // un'impronta diversa da quella calcolata sul telefono.
+  int mul(int h) => (h * 0x193 + (h & 0xff) * 0x1000000) % 0x100000000;
+  var h1 = 0x811c9dc5, h2 = 0x050c5d1f;
+  for (final c in norm.codeUnits) {
+    h1 = mul((h1 ^ c) & 0xffffffff);
+    h2 = mul((h2 ^ (c + 31)) & 0xffffffff);
+  }
+  String hex(int v) => v.toRadixString(16).padLeft(8, '0');
+  return 'p$pageCount-${hex(h1)}${hex(h2)}';
 }

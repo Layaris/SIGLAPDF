@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../features/documents/recents/recents_repository.dart';
+import '../features/documents/templates/templates_repository.dart';
 import '../features/profile/profile_repository.dart';
 import '../features/settings/settings_repository.dart';
 import '../features/settings/signature_lock.dart';
@@ -18,6 +19,7 @@ class AppServices {
     required this.profile,
     required this.lock,
     required this.recents,
+    required this.templates,
     this.files = const SystemFileAccess(),
     this.ocr,
   });
@@ -27,6 +29,7 @@ class AppServices {
   final ProfileRepository profile;
   final SignatureLock lock;
   final RecentsRepository recents;
+  final TemplatesRepository templates;
   final FileAccess files;
 
   /// OCR sul dispositivo per i PDF scansionati (Android), null dove non c'è.
@@ -46,6 +49,7 @@ class AppServices {
       profile: ProfileRepository(MemoryKeyValueStore()),
       lock: SignatureLock(settings, auth ?? _AlwaysYes(), isWeb: isWeb),
       recents: RecentsRepository(MemoryKeyValueStore()),
+      templates: TemplatesRepository(MemoryKeyValueStore()),
       files: files,
       ocr: ocr,
     );

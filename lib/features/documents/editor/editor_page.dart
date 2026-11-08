@@ -20,6 +20,7 @@ import '../autofill/autofill.dart';
 import '../autofill/autofill_preview_page.dart';
 import '../autofill/form_fields_sheet.dart';
 import '../models/placed_element.dart';
+import '../templates/templates_repository.dart';
 import '../widgets/element_view.dart';
 import '../widgets/pdf_page_view.dart';
 import '../widgets/text_input_dialog.dart';
@@ -73,6 +74,19 @@ class EditorPageState extends State<EditorPage> {
   double _pinchStartZoom = 1;
   double _pageWidth = 600;
   static const _gap = 16.0;
+
+  /// Modello già salvato per questo modulo, proposto in cima alla pagina.
+  FormTemplate? _templateOffer;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final t = AppScope.of(context).templates.matching(ctrl.info.fingerprint);
+      if (t != null && ctrl.elements.isEmpty) setState(() => _templateOffer = t);
+    });
+  }
 
   @override
   void dispose() {
@@ -306,6 +320,77 @@ class EditorPageState extends State<EditorPage> {
     final t = await showTextInputDialog(context, title: 'Modifica testo', initial: e.text, action: 'Salva');
     if (t == null) return;
     ctrl.updateElement(e.copyWith(text: t));
+  }
+
+  // ---------- Modelli ----------
+
+  Future<void> saveTemplate() async {
+    if (ctrl.elements.isEmpty) {
+      _snack('Aggiungi prima firma, testi o data: il modello ricorda dove li hai messi');
+      return;
+    }
+    final base = ctrl.fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '').replaceAll(RegExp(r'_firmato$'), '');
+    final name = await showTextInputDialog(context, title: 'Salva come modello', initial: base, label: 'Nome del modello', action: 'Salva');
+    if (name == null || !mounted) return;
+    await AppScope.of(context).templates.save(
+          name: name,
+          elements: ctrl.elements,
+          pageCount: ctrl.pageCount,
+          fingerprint: ctrl.info.fingerprint,
+        );
+    _snack(ctrl.info.fingerprint == null
+        ? 'Modello salvato. Applicalo dal menu quando riapri questo modulo.'
+        : 'Modello salvato. La prossima volta che apri questo modulo te lo propongo.');
+  }
+
+  Future<void> applyTemplate(FormTemplate t) async {
+    setState(() => _templateOffer = null);
+    final services = AppScope.of(context);
+    final needsSignature = t.elements.any((e) => e.type.isImage);
+    if (needsSignature && !await ensureSignaturesUnlocked(context)) return;
+    if (!mounted) return;
+    final items = elementsFromTemplate(
+      t,
+      pageCount: ctrl.pageCount,
+      today: todayText(),
+      signaturePng: services.signatures.defaultOf(SignatureKind.signature)?.png,
+      initialsPng: services.signatures.defaultOf(SignatureKind.initials)?.png,
+    );
+    ctrl.addAll(items);
+    final skipped = t.elements.length - items.length;
+    _snack(skipped > 0 ? 'Modello applicato (${items.length} elementi, $skipped saltati: manca la firma o la pagina)' : 'Modello applicato');
+  }
+
+  Future<void> chooseTemplate() async {
+    final list = AppScope.of(context).templates.all;
+    if (list.isEmpty) {
+      _snack('Nessun modello. Posiziona gli elementi e usa "Salva come modello".');
+      return;
+    }
+    final t = await showModalBottomSheet<FormTemplate>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('Applica un modello', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            for (final t in list)
+              ListTile(
+                leading: const Icon(Icons.dashboard_customize_outlined),
+                title: Text(t.name),
+                subtitle: Text('${t.elements.length} elementi · ${t.pageCount} ${t.pageCount == 1 ? 'pagina' : 'pagine'}'),
+                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint ? const Text('Questo modulo') : null,
+                onTap: () => Navigator.pop(context, t),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (t != null) await applyTemplate(t);
   }
 
   // ---------- Esportazione ----------
@@ -667,14 +752,23 @@ class EditorPageState extends State<EditorPage> {
                 actions: [
                   IconButton(tooltip: 'Annulla', onPressed: ctrl.canUndo ? ctrl.undo : null, icon: const Icon(Icons.undo)),
                   IconButton(tooltip: 'Ripeti', onPressed: ctrl.canRedo ? ctrl.redo : null, icon: const Icon(Icons.redo)),
+                  PopupMenuButton<String>(
+                    tooltip: 'Altro',
+                    onSelected: (v) => v == 'save' ? saveTemplate() : chooseTemplate(),
+                    itemBuilder: (_) => const [
+                      PopupMenuItem(value: 'save', child: Text('Salva come modello')),
+                      PopupMenuItem(value: 'apply', child: Text('Applica un modello')),
+                    ],
+                  ),
                   Padding(
-                    padding: const EdgeInsets.only(right: 12, left: 4),
+                    padding: const EdgeInsets.only(right: 12),
                     child: FilledButton(onPressed: export, child: const Text('Esporta PDF')),
                   ),
                 ],
               ),
               body: Column(
                 children: [
+                  if (_templateOffer != null) _templateBanner(_templateOffer!),
                   Expanded(
                     child: Row(
                       children: [
@@ -996,6 +1090,23 @@ class EditorPageState extends State<EditorPage> {
         _ToolButton(icon: Icons.library_add_check_outlined, label: 'Sigla tutte', onTap: initialAllPages),
         ...extraTools(context),
       ]);
+
+  Widget _templateBanner(FormTemplate t) {
+    final c = AppColors.of(context);
+    return Container(
+      color: c.accent.withValues(alpha: 0.08),
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      child: Row(
+        children: [
+          Icon(Icons.dashboard_customize_outlined, color: c.accent),
+          const SizedBox(width: 12),
+          Expanded(child: Text('Modulo già compilato: vuoi rimettere tutto come in "${t.name}"?')),
+          TextButton(onPressed: () => setState(() => _templateOffer = null), child: const Text('No')),
+          FilledButton(onPressed: () => applyTemplate(t), child: const Text('Applica')),
+        ],
+      ),
+    );
+  }
 
   Widget _penBar() {
     final c = AppColors.of(context);

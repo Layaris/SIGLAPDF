@@ -6,6 +6,7 @@ import '../../core/app_services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/page_frame.dart';
 import '../backup/backup_dialogs.dart';
+import '../documents/templates/templates_page.dart';
 import 'settings_model.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -251,6 +252,13 @@ class _BackupSection extends StatelessWidget {
           await services.settings.update((x) => x.copyWith(keepRecents: v));
           if (!v) await services.recents.clear();
         },
+      ),
+      const Divider(height: 1),
+      ListTile(
+        leading: const Icon(Icons.dashboard_customize_outlined),
+        title: const Text('Modelli salvati'),
+        subtitle: Text('Dove vanno firma e testi nei moduli che compili spesso', style: TextStyle(color: c.secondary)),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const TemplatesPage())),
       ),
       const Divider(height: 1),
       ListTile(
