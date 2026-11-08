@@ -90,6 +90,21 @@ Uint8List buildChoicesPdf() {
   return bytes;
 }
 
+/// Caselle dopo l'opzione: "Sì [ ]  No [ ]" e "Sesso  M [ ]  F [ ]".
+Uint8List buildChoicesAfterPdf() {
+  final doc = PdfDocument();
+  doc.pageSettings.margins.all = 0;
+  doc.pageSettings.size = const Size(595, 842);
+  final g = doc.pages.add().graphics;
+  final f = PdfStandardFont(PdfFontFamily.helvetica, 11);
+  void t(String s, double x, double y) => g.drawString(s, f, bounds: Rect.fromLTWH(x, y, 520, 16));
+  t('Desidero ricevere la newsletter   Sì [   ]   No [   ]', 50, 100);
+  t('Sesso   M [   ]   F [   ]', 50, 140);
+  final bytes = Uint8List.fromList(doc.saveSync());
+  doc.dispose();
+  return bytes;
+}
+
 /// Variante senza caselle: "Sesso M F".
 Uint8List buildGenderLettersPdf() {
   final doc = PdfDocument();

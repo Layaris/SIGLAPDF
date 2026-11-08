@@ -33,6 +33,18 @@ void main() {
     expect(fields.where((f) => f.kind == FieldKind.gender), hasLength(1), reason: '"Sesso:" non crea anche un campo di testo');
   });
 
+  test('caselle dopo l\'opzione: "Sì [ ] No [ ]" e "M [ ] F [ ]"', () async {
+    final bytes = buildChoicesAfterPdf();
+    final fields = await _detect(bytes);
+    final yn = fields.firstWhere((f) => f.kind == FieldKind.yesNo);
+    expect(yn.options.map((o) => o.label), ['Sì', 'No']);
+    expect(yn.label, 'Desidero ricevere la newsletter', reason: 'l\'etichetta non contiene "Sì"');
+    final g = fields.firstWhere((f) => f.kind == FieldKind.gender);
+    expect(g.options.map((o) => o.label), ['M', 'F']);
+    expect(g.label, 'Sesso');
+    expect(g.options.first.rect.x, lessThan(g.options.last.rect.x));
+  });
+
   test('"Sesso M F" senza caselle', () async {
     final fields = await _detect(buildGenderLettersPdf());
     final g = fields.firstWhere((f) => f.kind == FieldKind.gender);

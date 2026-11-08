@@ -166,14 +166,40 @@ class LocalTextFieldDetector implements FieldDetector {
   List<DetectedField> _choices(_Line line, Size size, int page, String source) {
     final h = line.bounds.height;
     final opts = <ChoiceOption>[];
-    for (final m in _box.allMatches(line.norm)) {
-      // Parola subito dopo la casella.
-      final after = _word.matchAsPrefix(line.norm.substring(m.end).replaceFirst(RegExp(r'^\s+'), ''));
-      if (after == null) continue;
-      final label = _optionLabel(after.group(0)!);
-      if (label == null) continue;
+    final starts = <int>[]; // indice da cui parte ogni opzione (casella o parola), per l'etichetta
+    final boxes = _box.allMatches(line.norm).toList();
+    // Parola subito dopo / subito prima della casella.
+    Match? wordAfter(Match m) {
+      final rest = line.norm.substring(m.end);
+      final skip = rest.length - rest.trimLeft().length;
+      final w = _word.matchAsPrefix(rest, skip);
+      return w != null && _optionLabel(w.group(0)!) != null ? w : null;
+    }
+    Match? wordBefore(Match m) {
+      final w = RegExp(r'([a-zà-ÿ]+)\s*$').firstMatch(line.norm.substring(0, m.start));
+      return w != null && _optionLabel(w.group(1)!) != null ? w : null;
+    }
+    // "[ ] Sì [ ] No" (casella prima) oppure "Sì [ ] No [ ]" (casella dopo): vince la lettura con più opzioni.
+    final nAfter = boxes.where((m) => wordAfter(m) != null).length;
+    final nBefore = boxes.where((m) => wordBefore(m) != null).length;
+    final labelFirst = nBefore > nAfter;
+    for (final m in boxes) {
+      final String label;
+      final int start;
+      if (labelFirst) {
+        final w = wordBefore(m);
+        if (w == null) continue;
+        label = _optionLabel(w.group(1)!)!;
+        start = w.start;
+      } else {
+        final w = wordAfter(m);
+        if (w == null) continue;
+        label = _optionLabel(w.group(0)!)!;
+        start = m.start;
+      }
       final a = line.chars[m.start].rect, b = line.chars[m.end - 1].rect;
       opts.add(ChoiceOption(label, NormRect.fromRect(Rect.fromLTRB(a.left, line.bounds.top, b.right, line.bounds.bottom), size)));
+      starts.add(start);
     }
     if (opts.isEmpty) {
       // "Sesso: M F" o "Sesso M/F": lettere sole dopo l'etichetta.
@@ -198,8 +224,14 @@ class LocalTextFieldDetector implements FieldDetector {
     }
     final relevant = opts.where((o) => kind == FieldKind.yesNo ? (o.label == 'Sì' || o.label == 'No') : (o.label == 'M' || o.label == 'F')).toList();
     // Etichetta: il testo prima della prima opzione (es. "Autorizza il trattamento dei dati?").
-    final firstX = relevant.first.rect.x * size.width;
-    final before = line.chars.where((c) => c.rect.right <= firstX).map((c) => c.ch).join().trim();
+    final String before;
+    final firstOpt = opts.indexOf(relevant.first);
+    if (firstOpt >= 0 && firstOpt < starts.length) {
+      before = line.text.substring(0, starts[firstOpt]).replaceAll(RegExp(r'\s+'), ' ').trim();
+    } else {
+      final firstX = relevant.first.rect.x * size.width;
+      before = line.chars.where((c) => c.rect.right <= firstX).map((c) => c.ch).join().trim();
+    }
     final rect = relevant.map((o) => o.rect.toRect(size)).reduce((a, b) => a.expandToInclude(b));
     return [
       DetectedField(
