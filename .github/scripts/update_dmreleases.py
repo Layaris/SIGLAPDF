@@ -1,8 +1,10 @@
 """Aggiorna i file di Sigla in Layaris/DMReleases dopo una pubblicazione.
 
 - sigla/latest.json e docs/sigla/latest.json (letti dall'app e dal sito)
-- sigla/CHANGELOG.md: la sezione "Prossima versione" diventa "build N"
+- sigla/CHANGELOG.md: la sezione "Prossima versione" diventa "build N", con le novità di NOVITA.md
 - README.md: blocco <!-- sigla:latest --> con il link all'ultima versione
+- (facoltativo) note della release: novità + testo di sigla/release.md
+- (facoltativo) NOVITA.md di SIGLAPDF: "Prossima versione" diventa "build N" e se ne apre una nuova
 """
 import argparse
 import datetime as dt
@@ -16,7 +18,20 @@ p.add_argument('--build', required=True, type=int)
 p.add_argument('--version', required=True)
 p.add_argument('--apk', default='')
 p.add_argument('--ipa', default='')
+p.add_argument('--novita', default='', help='NOVITA.md di SIGLAPDF')
+p.add_argument('--release-notes-out', default='', help='dove scrivere le note della release')
 a = p.parse_args()
+
+PLACEHOLDER = 'Nessuna novità per ora'
+
+
+def next_bullets(text, heading):
+    """Righe "- ..." della sezione che inizia con heading (fino alla prossima "## ")."""
+    if heading not in text:
+        return []
+    body = text.split(heading, 1)[1]
+    body = body.split('\n## ', 1)[0]
+    return [l.rstrip() for l in body.splitlines() if l.startswith('- ') and PLACEHOLDER not in l]
 
 root = pathlib.Path(a.root)
 tag = f'sigla-build-{a.build}'
@@ -41,14 +56,35 @@ text = json.dumps(latest, ensure_ascii=False, indent=2) + '\n'
 latest_path.write_text(text, encoding='utf-8')
 (root / 'docs' / 'sigla' / 'latest.json').write_text(text, encoding='utf-8')
 
+novita_path = pathlib.Path(a.novita) if a.novita else None
+novita = novita_path.read_text(encoding='utf-8') if novita_path and novita_path.exists() else ''
+bullets = next_bullets(novita, '## Prossima versione')
+
 changelog = root / 'sigla' / 'CHANGELOG.md'
 if changelog.exists():
     c = changelog.read_text(encoding='utf-8')
     heading = '## Prossima versione (in preparazione)'
     if heading in c:
-        c = c.replace(heading, f'## build-{a.build} · {data_it}', 1)
-        c = c.replace('<!-- changelog:next -->', f'<!-- changelog:next -->\n\n{heading}\n\n- Nessuna novità per ora', 1)
+        start = c.index(heading)
+        end = c.find('\n## ', start + len(heading))
+        end = len(c) if end < 0 else end
+        # Testo già scritto in DMReleases (senza il segnaposto) + novità di NOVITA.md non ancora presenti.
+        lines = [l for l in c[start + len(heading):end].strip().splitlines() if PLACEHOLDER not in l]
+        lines += [b for b in bullets if b not in lines]
+        body = '\n'.join(lines).strip() or f'- {PLACEHOLDER}'
+        c = c[:start] + f'{heading}\n\n- {PLACEHOLDER}\n\n## build-{a.build} · {data_it}\n\n{body}\n' + c[end:]
         changelog.write_text(c, encoding='utf-8')
+        bullets = [l for l in lines if l.startswith('- ')]
+
+if a.release_notes_out:
+    base_notes = (root / 'sigla' / 'release.md').read_text(encoding='utf-8')
+    notes = ('### Novità\n\n' + '\n'.join(bullets) + '\n\n') if bullets else ''
+    pathlib.Path(a.release_notes_out).write_text(notes + base_notes, encoding='utf-8')
+
+if novita_path and novita and '## Prossima versione' in novita:
+    n = novita.replace('## Prossima versione', f'## build-{a.build} · {data_it}', 1)
+    n = n.replace('<!-- novita:next -->', f'<!-- novita:next -->\n\n## Prossima versione\n\n- {PLACEHOLDER}', 1)
+    novita_path.write_text(n, encoding='utf-8')
 
 readme = root / 'README.md'
 if readme.exists():

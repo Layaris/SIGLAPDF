@@ -84,6 +84,32 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 - Commit piccoli, messaggi in italiano al presente ("Aggiunge…", "Corregge…").
 - Prima di usare un'API di un pacchetto, verificarla in `~/.pub-cache/hosted/pub.dev/<pkg>`.
 
+## Novità e DMReleases (obbligatorio per ogni funzione visibile)
+
+Le pagine pubbliche di Sigla stanno in **Layaris/DMReleases** e devono restare allineate all'app.
+Quando aggiungi o cambi qualcosa che l'utente vede:
+
+1. Scrivi una riga in parole semplici in `NOVITA.md`, sezione "Prossima versione". Alla pubblicazione
+   (*Pubblica*) lo script `.github/scripts/update_dmreleases.py` la mette nelle note della release e nel
+   `sigla/CHANGELOG.md` di DMReleases, e qui la sposta sotto "build-N" (il workflow fa il commit).
+2. Per le funzioni importanti aggiorna anche, in DMReleases (branch `claude/determined-keller-5b8xki`,
+   poi PR verso `main`):
+   - `sigla/README.md` (sezione "Cosa fa") e `sigla/GUIDA.md` (come si usa);
+   - `docs/sigla/index.html` (schede "Cosa fa") e la scheda di Sigla in `docs/index.html`;
+   - `sigla/PRIVACY.md` e `docs/sigla/privacy.html` se cambia cosa va in rete;
+   - `README.md` principale (blocco `<!-- app:sigla -->`) se cambia la descrizione breve.
+3. Se cambia l'aspetto, rifai gli screenshot (dati di fantasia, modulo di esempio incluso):
+   ```bash
+   flutter build web --release --no-web-resources-cdn
+   (cd build/web && python3 -m http.server 8766 &)
+   NODE_PATH=$(npm root -g) node tool/screenshots/screenshots.js /tmp/shots
+   python3 tool/screenshots/copy_to_dmreleases.py /tmp/shots ../DMReleases
+   ```
+   Lo script pilota la web app tramite l'albero di accessibilità di Flutter (`tool/screenshots/lib.js`):
+   niente `scrollIntoView` (sposta solo l'albero, non la pagina), si scorre con la rotellina; i trascinamenti
+   compensano la soglia del gesto; in modalità penna la pagina non è nell'albero. Le posizioni sul modulo
+   vengono da `posizioni.json`, scritto da `make_sample_pdf.py`.
+
 ## Decisioni prese (e perché)
 
 - **`asStringMap` non tocca i `TypedData`**: i PNG letti da Hive restano `Uint8List`.

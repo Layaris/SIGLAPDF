@@ -117,8 +117,8 @@ Le build si fanno **solo a mano** su GitHub Actions (workflow *Pubblica*,
 repository [Layaris/DMReleases](https://github.com/Layaris/DMReleases) come `sigla-build-N`
 (N = numero dell'esecuzione). Opzioni: APK, IPA (per ora spenta: si lascia così), pubblica (se spenta restano solo gli artifact).
 
-Cosa fa: analisi e test → APK (Linux) e/o IPA (macOS) → release `Sigla · build N` con il testo di
-`sigla/release.md` → aggiorna `sigla/latest.json`, `docs/sigla/latest.json`, `sigla/CHANGELOG.md`
+Cosa fa: analisi e test → APK (Linux) e/o IPA (macOS) → release `Sigla · build N` con le novità di
+[`NOVITA.md`](NOVITA.md) e il testo di `sigla/release.md` → aggiorna `sigla/latest.json`, `docs/sigla/latest.json`, `sigla/CHANGELOG.md`
 (la sezione "Prossima versione" diventa "build-N") e il blocco `<!-- sigla:latest -->` del README
 di DMReleases (script `.github/scripts/update_dmreleases.py`). Prima della prima pubblicazione la
 cartella `sigla/` deve essere sul branch principale di DMReleases.
