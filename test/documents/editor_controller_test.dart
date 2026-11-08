@@ -114,4 +114,14 @@ void main() {
 
     test('data odierna in formato italiano', () => expect(todayText(DateTime(2026, 3, 5)), '05/03/2026'));
   });
+
+  test('dopo l\'esportazione non chiede più conferma, finché non cambi qualcosa', () {
+    final c = _ctrl();
+    c.add(type: ElementType.check, page: 0, rect: const NormRect(0.1, 0.1, 0.05, 0.05));
+    expect(c.isDirty, isTrue);
+    c.markExported();
+    expect(c.isDirty, isFalse);
+    c.add(type: ElementType.cross, page: 0, rect: const NormRect(0.2, 0.1, 0.05, 0.05));
+    expect(c.isDirty, isTrue);
+  });
 }

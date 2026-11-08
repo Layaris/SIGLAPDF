@@ -477,6 +477,7 @@ class EditorPageState extends State<EditorPage> {
       _snack(error ?? tr('Esportazione non riuscita.'));
       return;
     }
+    ctrl.markExported();
     final services = AppScope.of(context);
     if (services.settings.value.keepRecents) {
       unawaited(_rememberRecent(services, out));

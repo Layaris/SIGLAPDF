@@ -35,8 +35,22 @@ class EditorController extends ChangeNotifier {
   bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
-  /// Ci sono modifiche da esportare?
-  bool get isDirty => _elements.isNotEmpty || !mapEquals(_formValues, _initialForm);
+  /// Stato al momento dell'ultima esportazione (null = mai esportato).
+  List<PlacedElement>? _exportedElements;
+  Map<String, String>? _exportedForm;
+
+  /// Ci sono modifiche non ancora esportate?
+  bool get isDirty {
+    final els = _exportedElements;
+    if (els != null) return !listEquals(els, _elements) || !mapEquals(_exportedForm, _formValues);
+    return _elements.isNotEmpty || !mapEquals(_formValues, _initialForm);
+  }
+
+  /// Da chiamare dopo un'esportazione riuscita.
+  void markExported() {
+    _exportedElements = _elements;
+    _exportedForm = Map.of(_formValues);
+  }
 
   List<PlacedElement> elementsOn(int page) => _elements.where((e) => e.page == page).toList();
 
