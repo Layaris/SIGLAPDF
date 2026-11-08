@@ -6,6 +6,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import '../../core/utils/pdf_coords.dart';
 import '../pdf_service.dart';
 import 'field_detector.dart';
+import 'field_kind.dart';
 import 'label_dictionary.dart';
 
 /// Parola con il suo riquadro in punti sulla pagina visiva. [glyphs] (facoltativo) ha un riquadro
@@ -101,6 +102,7 @@ class LocalTextFieldDetector implements FieldDetector {
 
     for (var li = 0; li < lines.length; li++) {
       final line = lines[li];
+      out.addAll(_choices(line, size, page, source));
       final labels = findLabels(line.norm);
       if (labels.isEmpty) continue;
       final h = line.bounds.height;
@@ -132,6 +134,7 @@ class LocalTextFieldDetector implements FieldDetector {
             box = _below(lines, li, line.chars[label.start].rect.left, size, rightLimit);
           }
         }
+        if (label.kind.isChoice) continue; // le scelte si gestiscono con le caselle (sotto)
         if (box == null || box.width < h * 1.5) continue;
         final labelText = line.text.substring(label.start, label.end).replaceAll(RegExp(r'\s+'), ' ').trim();
         out.add(DetectedField(
@@ -145,6 +148,70 @@ class LocalTextFieldDetector implements FieldDetector {
       }
     }
     return out;
+  }
+
+  static final _box = RegExp(r'\[\s*\]|\(\s*\)|[☐□◻▢❑❒]');
+  static final _word = RegExp(r'[a-zà-ÿ]+');
+
+  /// Etichetta normalizzata di un'opzione (Sì/No, M/F) o null se non è una scelta nota.
+  static String? _optionLabel(String w) => switch (w) {
+        'si' || 'sì' || 'sí' || 'yes' => 'Sì',
+        'no' => 'No',
+        'm' || 'maschio' || 'male' => 'M',
+        'f' || 'femmina' || 'female' => 'F',
+        _ => null,
+      };
+
+  /// Caselle di scelta su una riga: "☐ Sì ☐ No", "[ ] M [ ] F", oppure "Sesso: M F" senza caselle.
+  List<DetectedField> _choices(_Line line, Size size, int page, String source) {
+    final h = line.bounds.height;
+    final opts = <ChoiceOption>[];
+    for (final m in _box.allMatches(line.norm)) {
+      // Parola subito dopo la casella.
+      final after = _word.matchAsPrefix(line.norm.substring(m.end).replaceFirst(RegExp(r'^\s+'), ''));
+      if (after == null) continue;
+      final label = _optionLabel(after.group(0)!);
+      if (label == null) continue;
+      final a = line.chars[m.start].rect, b = line.chars[m.end - 1].rect;
+      opts.add(ChoiceOption(label, NormRect.fromRect(Rect.fromLTRB(a.left, line.bounds.top, b.right, line.bounds.bottom), size)));
+    }
+    if (opts.isEmpty) {
+      // "Sesso: M F" o "Sesso M/F": lettere sole dopo l'etichetta.
+      final g = RegExp(r'\b(?:sesso|gender|sex)\b').firstMatch(line.norm);
+      if (g != null) {
+        for (final w in RegExp(r'\b([mf])\b').allMatches(line.norm.substring(g.end))) {
+          final i = g.end + w.start;
+          final r = line.chars[i].rect;
+          final side = h * 0.9;
+          opts.add(ChoiceOption(_optionLabel(w.group(1)!)!, NormRect.fromRect(Rect.fromCenter(center: r.center, width: side, height: side), size)));
+        }
+      }
+    }
+    final labels = opts.map((o) => o.label).toSet();
+    final FieldKind kind;
+    if (labels.containsAll({'Sì', 'No'})) {
+      kind = FieldKind.yesNo;
+    } else if (labels.containsAll({'M', 'F'})) {
+      kind = FieldKind.gender;
+    } else {
+      return const [];
+    }
+    final relevant = opts.where((o) => kind == FieldKind.yesNo ? (o.label == 'Sì' || o.label == 'No') : (o.label == 'M' || o.label == 'F')).toList();
+    // Etichetta: il testo prima della prima opzione (es. "Autorizza il trattamento dei dati?").
+    final firstX = relevant.first.rect.x * size.width;
+    final before = line.chars.where((c) => c.rect.right <= firstX).map((c) => c.ch).join().trim();
+    final rect = relevant.map((o) => o.rect.toRect(size)).reduce((a, b) => a.expandToInclude(b));
+    return [
+      DetectedField(
+        page: page,
+        kind: kind,
+        label: before.isEmpty ? kind.label : (before.length > 50 ? '${before.substring(0, 47)}…' : before),
+        rect: NormRect.fromRect(rect, size),
+        source: source,
+        lineHeight: h / size.height,
+        options: relevant,
+      ),
+    ];
   }
 
   /// Spazio sotto un'etichetta a fine riga: una riga di soli "____" subito sotto,

@@ -39,6 +39,7 @@ final List<_Pattern> _patterns = [
   _Pattern(r'\bdata\b|\bdate\b', FieldKind.date),
   _Pattern(r'\bluogo\b|\bplace\b', FieldKind.place),
   _Pattern(r'\bfirma\b|\bsignature\b|sign\s*here|\bfirmato\b', FieldKind.signature),
+  _Pattern(r'\bsesso\b|\bgender\b|\bsex\b', FieldKind.gender),
 ];
 
 const _accents = {

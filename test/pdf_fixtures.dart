@@ -73,3 +73,31 @@ Uint8List buildUnmarkedFormPdf() {
   doc.dispose();
   return bytes;
 }
+
+/// Modulo con caselle di scelta (Sì/No, M/F) e "Sesso M F" senza caselle.
+Uint8List buildChoicesPdf() {
+  final doc = PdfDocument();
+  doc.pageSettings.margins.all = 0;
+  doc.pageSettings.size = const Size(595, 842);
+  final g = doc.pages.add().graphics;
+  final f = PdfStandardFont(PdfFontFamily.helvetica, 11);
+  void t(String s, double x, double y) => g.drawString(s, f, bounds: Rect.fromLTWH(x, y, 520, 16));
+  t('Autorizza il trattamento dei dati personali?  [ ] Sì   [ ] No', 50, 100);
+  t('Sesso:  [ ] M   [ ] F', 50, 140);
+  t('Cognome: ______________________', 50, 180);
+  final bytes = Uint8List.fromList(doc.saveSync());
+  doc.dispose();
+  return bytes;
+}
+
+/// Variante senza caselle: "Sesso M F".
+Uint8List buildGenderLettersPdf() {
+  final doc = PdfDocument();
+  doc.pageSettings.margins.all = 0;
+  doc.pageSettings.size = const Size(595, 842);
+  final f = PdfStandardFont(PdfFontFamily.helvetica, 11);
+  doc.pages.add().graphics.drawString('Nome e cognome ____________   Sesso   M   F', f, bounds: const Rect.fromLTWH(50, 100, 520, 16));
+  final bytes = Uint8List.fromList(doc.saveSync());
+  doc.dispose();
+  return bytes;
+}
