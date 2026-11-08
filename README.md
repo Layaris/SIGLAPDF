@@ -57,6 +57,10 @@ app non fa richieste a CDN esterni. pdf.js 6.2.108 (licenza Apache 2.0) è inclu
 e serve al render delle pagine; `web/index.html` imposta `dartPdfJsBaseUrl = "./pdfjs/"`
 (il `./` è obbligatorio). Sul web il blocco biometrico, lo scanner e "Apri con" non ci sono.
 
+Online: **https://dmsigla.pages.dev** (Cloudflare Pages). Il workflow `.github/workflows/web.yml`
+ripubblica la web app da solo a ogni modifica del codice (servono i secret `CLOUDFLARE_API_TOKEN`
+e `CLOUDFLARE_ACCOUNT_ID`, vedi [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md)).
+
 ### Android
 
 ```bash
@@ -123,9 +127,12 @@ Secret richiesti nel repository SIGLAPDF:
 
 | Secret | A cosa serve |
 |---|---|
-| `DMRELEASES_TOKEN` | token GitHub con permesso *contents: write* su Layaris/DMReleases |
+| `DMRELEASES_TOKEN` | token GitHub fine-grained (*Contents* e *Secrets* read/write) su SIGLAPDF e DMReleases |
 | `ANDROID_KEYSTORE_BASE64` | (facoltativo) keystore in base64 |
 | `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` | (facoltativi) dati del keystore |
+| `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` | pubblicazione automatica della web app su Cloudflare Pages |
+
+Passaggi completi (anche per creare la chiave senza installare nulla): [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md).
 
 Senza keystore l'APK è firmato con la chiave di debug: in quel caso gli aggiornamenti
 potrebbero non installarsi sopra la versione precedente.

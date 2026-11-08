@@ -1,55 +1,90 @@
-# Pubblica la web app su GitHub Pages: https://layaris.github.io/SIGLAPDF/
-# Si avvia a mano (Actions › Pubblica web app › Run workflow).
-# Una volta sola: Settings › Pages › Build and deployment › Source: "GitHub Actions".
+# Pubblica la web app su Cloudflare Pages: https://dmsigla.pages.dev
+# Parte da sola a ogni modifica del codice dell'app sul branch principale, e si può avviare a mano
+# (Actions › Pubblica web app › Run workflow).
+#
+# Servono due secret (Settings › Secrets and variables › Actions):
+#   CLOUDFLARE_API_TOKEN   token Cloudflare con il permesso Account › Cloudflare Pages › Edit
+#   CLOUDFLARE_ACCOUNT_ID  ID dell'account Cloudflare
+# Senza i secret il workflow non fallisce: salta la pubblicazione e lo scrive nel riepilogo.
+# Il progetto "dmsigla" su Cloudflare lo crea il workflow la prima volta.
 name: Pubblica web app
 
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/determined-keller-5b8xki]
+    paths:
+      - "lib/**"
+      - "web/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/web.yml"
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: web-cloudflare
   cancel-in-progress: true
 
 env:
   FLUTTER_VERSION: 3.47.9
+  CF_PROJECT: dmsigla
 
 jobs:
-  build:
-    name: Build web
+  web:
+    name: Build e pubblicazione
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Controlla i secret
+        id: secret
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "pronto=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Mancano CLOUDFLARE_API_TOKEN o CLOUDFLARE_ACCOUNT_ID: pubblicazione saltata."
+            echo "Pubblicazione saltata: mancano i secret Cloudflare (vedi docs/PUBBLICAZIONE.md)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "pronto=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.secret.outputs.pronto == 'true'
+        uses: actions/checkout@v4
+      - if: steps.secret.outputs.pronto == 'true'
+        uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - run: flutter pub get
-      - run: flutter test
-      - name: Build
+      - if: steps.secret.outputs.pronto == 'true'
+        run: flutter pub get
+      - if: steps.secret.outputs.pronto == 'true'
+        run: flutter test
+      - name: Build web
+        if: steps.secret.outputs.pronto == 'true'
         run: |
           VERSION=$(grep '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')
           flutter build web --release --no-web-resources-cdn --no-wasm-dry-run \
-            --base-href /SIGLAPDF/ \
+            --base-href / \
             --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="web-${{ github.run_number }}"
-          touch build/web/.nojekyll
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/setup-node@v4
+        if: steps.secret.outputs.pronto == 'true'
         with:
-          path: build/web
-
-  deploy:
-    name: Pubblica su Pages
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          node-version: 22
+      - name: Crea il progetto Cloudflare (solo la prima volta)
+        if: steps.secret.outputs.pronto == 'true'
+        run: |
+          if npx --yes wrangler@4 pages project list | grep -qw "$CF_PROJECT"; then
+            echo "Progetto $CF_PROJECT già presente"
+          else
+            npx --yes wrangler@4 pages project create "$CF_PROJECT" --production-branch=main
+          fi
+      - name: Pubblica su Cloudflare Pages
+        if: steps.secret.outputs.pronto == 'true'
+        run: |
+          npx --yes wrangler@4 pages deploy build/web --project-name="$CF_PROJECT" --branch=main \
+            --commit-hash="${{ github.sha }}" --commit-message="build ${{ github.run_number }}" --commit-dirty=true
+          echo "Web app pubblicata: https://$CF_PROJECT.pages.dev" >> "$GITHUB_STEP_SUMMARY"

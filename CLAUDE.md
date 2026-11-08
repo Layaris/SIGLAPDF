@@ -155,8 +155,11 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
   (`inkElementFromStroke`); evidenziatore esportato con trasparenza `multiply`.
 - **Avviso di versione**: `UpdateService` legge `raw.githubusercontent.com/Layaris/DMReleases/main/sigla/latest.json`
   (max 1 volta/20 h, solo Android, build da `--dart-define=APP_BUILD`).
-- **Web app**: workflow `web.yml` → GitHub Pages `https://layaris.github.io/SIGLAPDF/` (base href
-  `/SIGLAPDF/`). Serve attivare Pages (Source: GitHub Actions) una volta.
+- **Web app**: workflow `web.yml` → Cloudflare Pages, progetto `dmsigla` (`https://dmsigla.pages.dev`,
+  base href `/`), come le altre app di DMReleases. Parte da solo a ogni push che tocca
+  `lib/ web/ assets/ pubspec.*` sul branch principale (e a mano). Usa `npx wrangler@4`; crea il progetto
+  se manca. Secret `CLOUDFLARE_API_TOKEN` (Pages Edit) e `CLOUDFLARE_ACCOUNT_ID`; senza secret salta
+  la pubblicazione senza fallire. Le chiavi dell'utente stanno sul suo PC (vedi `docs/PUBBLICAZIONE.md`).
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -175,13 +178,14 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
   l'app va in background. Disattivato sul web.
 - **Rilevamento campi dietro `FieldDetector`**: motore locale (testo + dizionario) predefinito,
   motore AI opzionale. Mai inserimenti silenziosi: sempre anteprima con conferma.
-- **Build solo su GitHub Actions, manuale** (`workflow_dispatch`), per non consumare minuti.
+- **Build solo su GitHub Actions**: APK/IPA manuali (`workflow_dispatch`); la web app si ripubblica da sola
+  a ogni push del codice (repository pubblico: minuti gratuiti).
 
 ## Stato attuale
 
 Vedi `docs/ROADMAP.md`. **Fasi 1–9 completate** più le migliorie (recenti, modelli, firma con data,
 penna/evidenziatore, zoom con due dita e miniature, più profili, caselle Sì/No e M/F, avviso di nuova
-versione, web app su GitHub Pages, inglese). 140+ test verdi, `flutter analyze` pulito,
+versione, web app su Cloudflare Pages, inglese). 140+ test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
 esportazione, nessuna richiesta esterna). APK **non ancora compilato**: la prima verifica reale di
 Android sarà il workflow *Pubblica*. L'IPA per ora non si fa (opzione spenta di default).
@@ -190,8 +194,9 @@ In DMReleases la cartella `sigla/` è già su `main` (Layaris/DMReleases#1).
 
 ## Prossimi passi
 
-1. L'utente crea token e password dal sito (`docs/PUBBLICAZIONE.md`); il keystore lo crea il workflow
-   `keystore.yml` (Crea chiave di firma) e lo salva nei secret con il token.
-2. Lanciare *Pubblica* (solo Android) e correggere eventuali errori di build (non verificabili qui:
+1. L'agente sul PC dell'utente segue `docs/PUBBLICAZIONE.md`: token GitHub, password, keystore
+   (workflow `keystore.yml`), token Cloudflare; tutto salvato anche in
+   `C:\Users\tyrig\Documents\progetti claude\CHIAVI PRIVATE\SIGLA` e nei 7 secret.
+2. Lanciare *Pubblica* (solo Android) e *Pubblica web app* e correggere eventuali errori di build (non verificabili qui:
    nel container non c'è l'SDK Android).
 3. Idee future in `docs/ROADMAP.md`.
