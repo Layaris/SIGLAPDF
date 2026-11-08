@@ -23,6 +23,8 @@ void main() {
     expect(UpdateService.parseLatest(_latest(10), 10), isNull);
     expect(UpdateService.parseLatest('{"app":"sigla","build":20,"apk":"https://evil.example/x.apk"}', 1), isNull);
     expect(UpdateService.parseLatest('{"app":"altra","build":20}', 1), isNull);
+    expect(UpdateService.parseLatest('{"app":"sigla","build":20,"apk":"https://github.com/altro/repo/releases/download/x/y.apk"}', 1), isNull,
+        reason: 'solo le release di Layaris/DMReleases');
     expect(UpdateService.parseLatest('non json', 1), isNull);
   });
 
@@ -56,6 +58,8 @@ void main() {
     final offline = UpdateService(MemoryKeyValueStore(),
         client: MockClient((_) async => throw http.ClientException('offline')), currentBuild: 1, enabledOnPlatform: true);
     expect(await offline.check(), isNull);
+    expect(offline.lastCheckFailed, isTrue, reason: '"Controlla ora" deve dire che il controllo non è riuscito');
+    expect(await offline.check(), isNull, reason: 'offline non segna l\'ora: riprova subito');
   });
 
   testWidgets('documenti: banner con Scarica e Non ora', (tester) async {

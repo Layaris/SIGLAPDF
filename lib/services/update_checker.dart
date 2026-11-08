@@ -54,17 +54,26 @@ class UpdateService extends ChangeNotifier {
     if (!force && last != null && _clock().difference(last) < const Duration(hours: 20)) return _available;
     try {
       final res = await _client.get(latestUrl).timeout(const Duration(seconds: 15));
+      if (res.statusCode != 200) {
+        lastCheckFailed = true;
+        return null;
+      }
+      // Si segna l'ora solo se il controllo è riuscito: offline si riprova alla prossima apertura.
       await _store.put(_lastKey, _clock().toIso8601String());
-      if (res.statusCode != 200) return null;
+      lastCheckFailed = false;
       final info = parseLatest(utf8.decode(res.bodyBytes), currentBuild!);
       final dismissed = (_store.get(_dismissedKey) as num?)?.toInt();
       _available = info != null && (force || info.build != dismissed) ? info : null;
       notifyListeners();
       return _available;
     } catch (_) {
+      lastCheckFailed = true;
       return null;
     }
   }
+
+  /// L'ultimo controllo non è riuscito (offline, errore del server).
+  bool lastCheckFailed = false;
 
   /// "Non ora": non riproporre questa build.
   Future<void> dismiss() async {
@@ -75,6 +84,9 @@ class UpdateService extends ChangeNotifier {
     await _store.put(_dismissedKey, a.build);
   }
 
+  /// Solo file delle release di Layaris/DMReleases.
+  static const downloadPrefix = 'https://github.com/Layaris/DMReleases/releases/download/';
+
   /// Legge `latest.json`: restituisce l'APK se la build è più nuova di [current].
   static UpdateInfo? parseLatest(String json, int current) {
     try {
@@ -82,7 +94,7 @@ class UpdateService extends ChangeNotifier {
       if (m is! Map || m['app'] != 'sigla') return null;
       final build = (m['build'] as num?)?.toInt();
       final apk = m['apk'];
-      if (build == null || apk is! String || !apk.startsWith('https://github.com/')) return null;
+      if (build == null || apk is! String || !apk.startsWith(downloadPrefix)) return null;
       if (build <= current) return null;
       return UpdateInfo(build: build, version: '${m['version'] ?? ''}', url: apk);
     } catch (_) {

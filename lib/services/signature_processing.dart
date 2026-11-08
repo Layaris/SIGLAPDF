@@ -134,10 +134,12 @@ img.Image cropToContent(img.Image im, {int padding = 4, int minAlpha = 24}) {
 
 /// Decodifica, raddrizza (EXIF) e riduce un'immagine.
 img.Image decodeForProcessing(Uint8List bytes, {int maxSide = 1600}) {
-  final decoded = img.decodeImage(bytes);
-  if (decoded == null) {
+  final raw = img.decodeImage(bytes);
+  if (raw == null) {
     throw SignatureProcessingException(tr('Formato immagine non supportato. Usa JPG o PNG.'));
   }
+  // Immagini a 16 bit o in virgola mobile: i canali vanno oltre 255 e la soglia leggerebbe tutto bianco.
+  final decoded = raw.format == img.Format.uint8 ? raw : raw.convert(format: img.Format.uint8);
   var im = img.bakeOrientation(decoded);
   final side = math.max(im.width, im.height);
   if (side > maxSide) {

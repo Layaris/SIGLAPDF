@@ -313,7 +313,11 @@ class _InfoSection extends StatelessWidget {
             final messenger = ScaffoldMessenger.of(context);
             final u = await services.updates.check(force: true);
             messenger.showSnackBar(SnackBar(
-              content: Text(u == null ? tr('Hai già l\'ultima versione') : tr('Nuova versione disponibile: vai in Documenti per scaricarla')),
+              content: Text(u != null
+                  ? tr('Nuova versione disponibile: vai in Documenti per scaricarla')
+                  : services.updates.lastCheckFailed
+                      ? tr('Controllo non riuscito. Controlla internet e riprova.')
+                      : tr('Hai già l\'ultima versione')),
             ));
           },
         ),

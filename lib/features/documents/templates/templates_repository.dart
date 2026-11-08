@@ -63,8 +63,12 @@ class FormTemplate {
 class TemplatesRepository extends ChangeNotifier {
   TemplatesRepository(this._store) {
     for (final k in _store.keys) {
-      final t = FormTemplate.fromMap(asStringMap(_store.get(k)));
-      if (t != null) _items[t.id] = t;
+      try {
+        final t = FormTemplate.fromMap(asStringMap(_store.get(k)));
+        if (t != null) _items[t.id] = t;
+      } catch (_) {
+        // Voce rovinata: si salta, l'app deve partire comunque.
+      }
     }
   }
 

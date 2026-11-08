@@ -56,6 +56,14 @@ void main() {
   });
 
   group('cutoutSignature', () {
+    test('PNG a 16 bit: stessa firma trovata', () {
+      final eight = img.decodeImage(_photo())!;
+      final sixteen = eight.convert(format: img.Format.uint16);
+      final r = cutoutSignature(CutoutRequest(Uint8List.fromList(img.encodePng(sixteen))));
+      final out = img.decodePng(r.png)!;
+      expect(out.width, inInclusiveRange(200, 220), reason: 'a 16 bit prima risultava tutto bianco');
+    });
+
     test('sfondo trasparente, ritaglio sul contenuto e soglia automatica', () {
       final r = cutoutSignature(CutoutRequest(_photo()));
       final out = img.decodePng(r.png)!;
