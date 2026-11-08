@@ -244,6 +244,42 @@ class PdfService {
       case ElementType.initials:
         final img = e.image;
         if (img != null && img.isNotEmpty) g.drawImage(PdfBitmap(img), r);
+      case ElementType.signedDate:
+        final img = e.image;
+        final top = Rect.fromLTWH(r.left, r.top, r.width, r.height * signedDateSplit);
+        final bottom = Rect.fromLTWH(r.left, top.bottom, r.width, r.height - top.height);
+        if (img != null && img.isNotEmpty) {
+          // Firma centrata nella parte alta, proporzioni conservate.
+          final bmp = PdfBitmap(img);
+          final ar = bmp.width / bmp.height;
+          var w = top.width, h = w / ar;
+          if (h > top.height) {
+            h = top.height;
+            w = h * ar;
+          }
+          g.drawImage(bmp, Rect.fromLTWH(top.center.dx - w / 2, top.bottom - h, w, h));
+        }
+        _drawText(g, e.text, bottom, color, center: true);
+      case ElementType.ink:
+        final pen = PdfPen(color, width: (e.inkWidth * coords.visual.width).clamp(0.3, 30.0))
+          ..lineCap = PdfLineCap.round
+          ..lineJoin = PdfLineJoin.round;
+        for (final stroke in e.strokes) {
+          if (stroke.length < 2) continue;
+          final path = PdfPath();
+          for (var i = 1; i < stroke.length; i++) {
+            path.addLine(
+              Offset(r.left + stroke[i - 1].dx * r.width, r.top + stroke[i - 1].dy * r.height),
+              Offset(r.left + stroke[i].dx * r.width, r.top + stroke[i].dy * r.height),
+            );
+          }
+          g.drawPath(path, pen: pen);
+        }
+      case ElementType.highlight:
+        g.save();
+        g.setTransparency(highlightOpacity, mode: PdfBlendMode.multiply);
+        g.drawRectangle(brush: PdfSolidBrush(_pdfColor(highlightColor)), bounds: r);
+        g.restore();
       case ElementType.text:
       case ElementType.date:
         _drawText(g, e.text, r, color);
@@ -264,7 +300,7 @@ class PdfService {
     g.restore(state);
   }
 
-  void _drawText(PdfGraphics g, String raw, Rect r, PdfColor color) {
+  void _drawText(PdfGraphics g, String raw, Rect r, PdfColor color, {bool center = false}) {
     final text = sanitizeForStandardFont(raw.trim());
     if (text.isEmpty) return;
     var size = r.height * textBoxFontRatio;
@@ -279,7 +315,11 @@ class PdfService {
       font,
       brush: PdfSolidBrush(color),
       bounds: Rect.fromLTWH(r.left, r.top, r.width * 1.02, r.height),
-      format: PdfStringFormat(lineAlignment: PdfVerticalAlignment.middle, wordWrap: PdfWordWrapType.none),
+      format: PdfStringFormat(
+        alignment: center ? PdfTextAlignment.center : PdfTextAlignment.left,
+        lineAlignment: PdfVerticalAlignment.middle,
+        wordWrap: PdfWordWrapType.none,
+      ),
     );
   }
 

@@ -89,6 +89,16 @@ class EditorController extends ChangeNotifier {
     return e;
   }
 
+  /// Aggiunge un elemento già costruito (es. un tratto a mano). Se [select], lo seleziona.
+  PlacedElement addElement(PlacedElement e, {bool select = true}) {
+    _record();
+    final added = e.copyWith(id: _uuid.v4(), page: e.page.clamp(0, pageCount - 1), rect: e.rect.clamped(minSize: 0.003));
+    _elements = [..._elements, added];
+    if (select) _selectedId = added.id;
+    notifyListeners();
+    return added;
+  }
+
   /// Aggiunge più elementi in un solo passo di cronologia (es. "Sigla tutte le pagine").
   void addAll(List<PlacedElement> items) {
     if (items.isEmpty) return;

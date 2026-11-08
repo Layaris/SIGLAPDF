@@ -6,8 +6,11 @@ import '../models/placed_element.dart';
 
 /// Contenuto grafico di un elemento (senza cornice di selezione).
 class ElementContent extends StatelessWidget {
-  const ElementContent({super.key, required this.element});
+  const ElementContent({super.key, required this.element, this.pageWidth = 600});
   final PlacedElement element;
+
+  /// Larghezza della pagina a schermo: serve per lo spessore dei tratti a mano.
+  final double pageWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +19,37 @@ class ElementContent extends StatelessWidget {
       ElementType.signature || ElementType.initials => element.image == null
           ? const SizedBox.shrink()
           : Image.memory(element.image!, fit: BoxFit.fill, gaplessPlayback: true, filterQuality: FilterQuality.medium),
+      ElementType.signedDate => LayoutBuilder(
+          builder: (context, c) => Column(
+            children: [
+              SizedBox(
+                height: c.maxHeight * signedDateSplit,
+                width: c.maxWidth,
+                child: element.image == null ? null : Image.memory(element.image!, fit: BoxFit.contain, gaplessPlayback: true),
+              ),
+              SizedBox(
+                height: c.maxHeight * (1 - signedDateSplit),
+                width: c.maxWidth,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    element.text,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: color,
+                      fontSize: (c.maxHeight * (1 - signedDateSplit) * textBoxFontRatio).clamp(1, 200),
+                      height: 1.0,
+                      fontFamily: 'Helvetica',
+                      fontFamilyFallback: const ['Arial', 'Roboto', 'sans-serif'],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ElementType.ink => CustomPaint(painter: InkElementPainter(element.strokes, color, element.inkWidth * pageWidth)),
+      ElementType.highlight => ColoredBox(color: const Color(highlightColor).withValues(alpha: highlightOpacity + 0.07)),
       ElementType.text || ElementType.date => LayoutBuilder(
           builder: (context, c) => Align(
             alignment: Alignment.centerLeft,
@@ -40,6 +74,35 @@ class ElementContent extends StatelessWidget {
       ElementType.check || ElementType.cross => CustomPaint(painter: MarkPainter(element.type, color)),
     };
   }
+}
+
+/// Tratti a mano: punti normalizzati nel riquadro, spessore in pixel.
+class InkElementPainter extends CustomPainter {
+  InkElementPainter(this.strokes, this.color, this.width);
+  final List<List<Offset>> strokes;
+  final Color color;
+  final double width;
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final p = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width.clamp(0.5, 40.0)
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    for (final stroke in strokes) {
+      if (stroke.isEmpty) continue;
+      final path = Path()..moveTo(stroke.first.dx * s.width, stroke.first.dy * s.height);
+      for (final pt in stroke.skip(1)) {
+        path.lineTo(pt.dx * s.width, pt.dy * s.height);
+      }
+      canvas.drawPath(path, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(InkElementPainter old) => old.strokes != strokes || old.color != color || old.width != width;
 }
 
 /// Spunta e croce disegnate come nel PDF esportato.
@@ -164,7 +227,7 @@ class ElementView extends StatelessWidget {
                     border: selected ? Border.all(color: c.accent, width: 1.5) : null,
                     color: selected ? c.accent.withValues(alpha: 0.05) : null,
                   ),
-                  child: ElementContent(element: element),
+                  child: ElementContent(element: element, pageWidth: pageSize.width),
                 ),
               ),
             ),

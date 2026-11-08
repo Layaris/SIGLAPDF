@@ -58,6 +58,18 @@ class EditorPageState extends State<EditorPage> {
   late final PageRenderer _renderer = PageRenderer(ctrl.bytes, rasterizer: widget.rasterizer);
   final _scroll = ScrollController();
   double _zoom = 1;
+
+  // Modalità penna.
+  bool _drawMode = false;
+  int _livePage = -1;
+  List<Offset> _liveStroke = const [];
+  int? _penColor;
+  double _penWidth = 0.004; // frazione della larghezza della pagina
+
+  // Zoom con due dita.
+  final Map<int, Offset> _pointers = {};
+  double? _pinchStartDist;
+  double _pinchStartZoom = 1;
   double _pageWidth = 600;
   static const _gap = 16.0;
 
@@ -124,19 +136,62 @@ class EditorPageState extends State<EditorPage> {
 
   // ---------- Inserimento elementi ----------
 
-  Future<void> addSignature(SignatureKind kind) async {
-    if (!await ensureSignaturesUnlocked(context) || !mounted) return;
-    final repo = AppScope.of(context).signatures;
-    final list = repo.ofKind(kind);
-    Signature? chosen;
+  /// Sceglie una firma del tipo richiesto (sblocco, creazione se manca, scelta se più d'una).
+  Future<Signature?> _chooseSignature(SignatureKind kind) async {
+    if (!await ensureSignaturesUnlocked(context) || !mounted) return null;
+    final list = AppScope.of(context).signatures.ofKind(kind);
     if (list.isEmpty) {
       await showNewSignatureSheet(context, initialKind: kind);
-      return;
-    } else if (list.length == 1) {
-      chosen = list.first;
-    } else {
-      chosen = await _pickSignature(list, kind);
+      return null;
     }
+    if (list.length == 1) return list.first;
+    return _pickSignature(list, kind);
+  }
+
+  /// Firma con la data di oggi sotto, in un solo elemento.
+  Future<void> addSignedDate() async {
+    final chosen = await _chooseSignature(SignatureKind.signature);
+    if (chosen == null || !mounted) return;
+    final page = currentPage;
+    ctrl.add(
+      type: ElementType.signedDate,
+      page: page,
+      rect: _factory(page).imageRect(chosen.aspectRatio * signedDateSplit, widthPts: 150, center: _freeCenter(page)),
+      image: chosen.png,
+      text: todayText(),
+      color: _inkColor,
+    );
+  }
+
+  /// Evidenziatore: riquadro giallo trasparente da posizionare sopra il testo.
+  void addHighlight() {
+    final page = currentPage;
+    final r = _factory(page).textRect('evidenziare questa parte', fontPts: 11, center: _freeCenter(page));
+    ctrl.add(type: ElementType.highlight, page: page, rect: r, color: highlightColor);
+  }
+
+  void _toggleDraw() => setState(() {
+        _drawMode = !_drawMode;
+        _penColor ??= _inkColor;
+        _liveStroke = const [];
+        if (_drawMode) ctrl.select(null);
+      });
+
+  void _strokeEnd() {
+    final page = _livePage;
+    final pts = _liveStroke;
+    setState(() {
+      _liveStroke = const [];
+      _livePage = -1;
+    });
+    if (page < 0 || pts.length < 2) return;
+    final info = ctrl.info.pages[page];
+    final e = inkElementFromStroke(pts, page: page, color: _penColor ?? _inkColor, inkWidth: _penWidth, pageAspect: info.aspectRatio);
+    if (e != null) ctrl.addElement(e, select: false);
+  }
+
+  Future<void> addSignature(SignatureKind kind) async {
+    final chosen = await _chooseSignature(kind);
     if (chosen == null || !mounted) return;
     final page = currentPage;
     final f = _factory(page);
@@ -601,8 +656,23 @@ class EditorPageState extends State<EditorPage> {
               ),
               body: Column(
                 children: [
-                  Expanded(child: _pages()),
-                  if (ctrl.selected != null) _selectionBar(ctrl.selected!) else _toolbar(),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        if (ctrl.pageCount > 1 && MediaQuery.sizeOf(context).width >= 1000) ...[
+                          SizedBox(width: 128, child: _thumbnails(width: 100, onTap: jumpToPage)),
+                          VerticalDivider(width: 1, color: AppColors.of(context).line),
+                        ],
+                        Expanded(child: _pages()),
+                      ],
+                    ),
+                  ),
+                  if (_drawMode)
+                    _penBar()
+                  else if (ctrl.selected != null)
+                    _selectionBar(ctrl.selected!)
+                  else
+                    _toolbar(),
                 ],
               ),
             ),
@@ -620,6 +690,8 @@ class EditorPageState extends State<EditorPage> {
       final totalWidth = _pageWidth + _gap * 2;
       final list = ListView.builder(
         controller: _scroll,
+        // In modalità penna un dito disegna invece di scorrere.
+        physics: _drawMode ? const NeverScrollableScrollPhysics() : null,
         padding: const EdgeInsets.symmetric(vertical: _gap / 2),
         itemCount: ctrl.pageCount,
         itemBuilder: (context, i) {
@@ -641,6 +713,12 @@ class EditorPageState extends State<EditorPage> {
                         Positioned.fill(child: PdfPageImage(renderer: _renderer, page: i, widthPts: info.visual.width)),
                         ..._formOverlays(i, size),
                         for (final e in ctrl.elementsOn(i))
+                          if (_drawMode)
+                            Positioned.fromRect(
+                              rect: e.rect.toRect(size),
+                              child: IgnorePointer(child: ElementContent(element: e, pageWidth: size.width)),
+                            )
+                          else
                           ElementView(
                             key: ValueKey(e.id),
                             element: e,
@@ -652,6 +730,33 @@ class EditorPageState extends State<EditorPage> {
                             onChangeEnd: ctrl.endChange,
                             onDelete: () => ctrl.remove(e.id),
                             onEdit: e.type.isText ? () => _editText(e) : null,
+                          ),
+                        if (_drawMode)
+                          Positioned.fill(
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onPanStart: (d) => setState(() {
+                                _livePage = i;
+                                _liveStroke = [Offset(d.localPosition.dx / size.width, d.localPosition.dy / size.height)];
+                              }),
+                              onPanUpdate: (d) {
+                                if (_livePage != i) return;
+                                final p = Offset(
+                                  (d.localPosition.dx / size.width).clamp(0.0, 1.0),
+                                  (d.localPosition.dy / size.height).clamp(0.0, 1.0),
+                                );
+                                setState(() => _liveStroke = [..._liveStroke, p]);
+                              },
+                              onPanEnd: (_) => _strokeEnd(),
+                              onPanCancel: _strokeEnd,
+                              child: CustomPaint(
+                                painter: InkElementPainter(
+                                  _livePage == i ? [_liveStroke] : const [],
+                                  Color(_penColor ?? _inkColor),
+                                  _penWidth * size.width,
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -665,11 +770,19 @@ class EditorPageState extends State<EditorPage> {
       return Stack(
         children: [
           Positioned.fill(
-            child: ColoredBox(
-              color: c.paper,
-              child: totalWidth > constraints.maxWidth
-                  ? SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: totalWidth, child: list))
-                  : list,
+            // Zoom con due dita (touch) e con Ctrl + rotella (mouse).
+            child: Listener(
+              onPointerDown: (e) => _pointerDown(e.pointer, e.position),
+              onPointerMove: (e) => _pointerMove(e.pointer, e.position),
+              onPointerUp: (e) => _pointerUp(e.pointer),
+              onPointerCancel: (e) => _pointerUp(e.pointer),
+              onPointerSignal: _pointerSignal,
+              child: ColoredBox(
+                color: c.paper,
+                child: totalWidth > constraints.maxWidth
+                    ? SingleChildScrollView(scrollDirection: Axis.horizontal, child: SizedBox(width: totalWidth, child: list))
+                    : list,
+              ),
             ),
           ),
           Positioned(right: 12, bottom: 12, child: _zoomControls()),
@@ -677,6 +790,131 @@ class EditorPageState extends State<EditorPage> {
       );
     });
   }
+
+  void _setZoom(double z) => setState(() => _zoom = z.clamp(1.0, 3.0));
+
+  void _pointerDown(int id, Offset pos) {
+    _pointers[id] = pos;
+    if (_pointers.length == 2) {
+      final ps = _pointers.values.toList();
+      _pinchStartDist = (ps[0] - ps[1]).distance;
+      _pinchStartZoom = _zoom;
+    }
+  }
+
+  void _pointerMove(int id, Offset pos) {
+    if (!_pointers.containsKey(id)) return;
+    _pointers[id] = pos;
+    final start = _pinchStartDist;
+    if (_pointers.length == 2 && start != null && start > 10) {
+      final ps = _pointers.values.toList();
+      _setZoom(_pinchStartZoom * (ps[0] - ps[1]).distance / start);
+    }
+  }
+
+  void _pointerUp(int id) {
+    _pointers.remove(id);
+    if (_pointers.length < 2) _pinchStartDist = null;
+  }
+
+  void _pointerSignal(PointerSignalEvent e) {
+    if (e is PointerScrollEvent && (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+      _setZoom(_zoom * (e.scrollDelta.dy > 0 ? 0.9 : 1.1));
+    }
+  }
+
+  /// Scorre fino alla pagina [i].
+  void jumpToPage(int i) {
+    if (!_scroll.hasClients) return;
+    var y = 0.0;
+    for (var k = 0; k < i; k++) {
+      y += _pageHeight(k) + _gap;
+    }
+    _scroll.animateTo(y.clamp(0.0, _scroll.position.maxScrollExtent), duration: const Duration(milliseconds: 300), curve: Curves.easeOutCubic);
+  }
+
+  /// Miniature delle pagine: tocca per andarci.
+  Widget _thumbnails({required double width, required void Function(int) onTap}) {
+    final c = AppColors.of(context);
+    return ListenableBuilder(
+      listenable: _scroll,
+      builder: (context, _) {
+        final current = currentPage;
+        return ListView.builder(
+          padding: const EdgeInsets.all(12),
+          itemCount: ctrl.pageCount,
+          itemBuilder: (context, i) {
+            final info = ctrl.info.pages[i];
+            final selected = i == current;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Semantics(
+                button: true,
+                label: 'Vai alla pagina ${i + 1}',
+                child: InkWell(
+                  onTap: () => onTap(i),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: width,
+                        height: width / info.aspectRatio,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: selected ? c.accent : c.line, width: selected ? 2 : 1),
+                        ),
+                        child: PdfPageImage(renderer: _renderer, page: i, widthPts: info.visual.width),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('${i + 1}', style: TextStyle(fontSize: 12, color: selected ? c.accent : c.secondary)),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showPagesSheet() => showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (sheet) => SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(sheet).height * 0.6,
+            child: GridView.builder(
+              padding: const EdgeInsets.all(16),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 120, childAspectRatio: 0.62, mainAxisSpacing: 12, crossAxisSpacing: 12),
+              itemCount: ctrl.pageCount,
+              itemBuilder: (context, i) {
+                final info = ctrl.info.pages[i];
+                return InkWell(
+                  onTap: () {
+                    Navigator.pop(sheet);
+                    jumpToPage(i);
+                  },
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: AspectRatio(
+                          aspectRatio: info.aspectRatio,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(border: Border.all(color: AppColors.of(context).line)),
+                            child: PdfPageImage(renderer: _renderer, page: i, widthPts: info.visual.width),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('${i + 1}', style: const TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
 
   Widget _zoomControls() {
     final c = AppColors.of(context);
@@ -686,15 +924,17 @@ class EditorPageState extends State<EditorPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (ctrl.pageCount > 1 && MediaQuery.sizeOf(context).width < 1000)
+            IconButton(tooltip: 'Pagine', onPressed: _showPagesSheet, icon: const Icon(Icons.grid_view_outlined)),
           IconButton(
             tooltip: 'Riduci',
-            onPressed: _zoom > 1 ? () => setState(() => _zoom = (_zoom - 0.5).clamp(1, 3)) : null,
+            onPressed: _zoom > 1 ? () => _setZoom(((_zoom - 0.5) * 2).round() / 2) : null,
             icon: const Icon(Icons.remove),
           ),
           Text('${(_zoom * 100).round()}%', style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()])),
           IconButton(
             tooltip: 'Ingrandisci',
-            onPressed: _zoom < 3 ? () => setState(() => _zoom = (_zoom + 0.5).clamp(1, 3)) : null,
+            onPressed: _zoom < 3 ? () => _setZoom(((_zoom + 0.5) * 2).round() / 2) : null,
             icon: const Icon(Icons.add),
           ),
         ],
@@ -727,17 +967,50 @@ class EditorPageState extends State<EditorPage> {
   Widget _toolbar() => _bar([
         _ToolButton(icon: Icons.gesture, label: 'Firma', onTap: () => addSignature(SignatureKind.signature)),
         _ToolButton(icon: Icons.short_text, label: 'Sigla', onTap: () => addSignature(SignatureKind.initials)),
+        _ToolButton(icon: Icons.edit_calendar_outlined, label: 'Firma e data', onTap: addSignedDate),
         _ToolButton(icon: Icons.title, label: 'Testo', onTap: addText),
         _ToolButton(icon: Icons.today_outlined, label: 'Data', onTap: addDate),
         _ToolButton(icon: Icons.check, label: 'Spunta', onTap: () => addMark(ElementType.check)),
         _ToolButton(icon: Icons.close, label: 'Croce', onTap: () => addMark(ElementType.cross)),
+        _ToolButton(icon: Icons.brush_outlined, label: 'Penna', onTap: _toggleDraw),
+        _ToolButton(icon: Icons.highlight_outlined, label: 'Evidenzia', onTap: addHighlight),
         _ToolButton(icon: Icons.library_add_check_outlined, label: 'Sigla tutte', onTap: initialAllPages),
         ...extraTools(context),
       ]);
 
+  Widget _penBar() {
+    final c = AppColors.of(context);
+    Widget width(double w, String label) => _ToolButton(
+          icon: Icons.horizontal_rule,
+          iconSize: 12 + w * 2000,
+          iconColor: _penWidth == w ? c.accent : null,
+          label: label,
+          onTap: () => setState(() => _penWidth = w),
+        );
+    return _bar([
+      _ToolButton(
+        icon: Icons.circle,
+        iconColor: InkColors.blue,
+        label: _penColor == InkColors.blue.toARGB32() ? '• Blu' : 'Blu',
+        onTap: () => setState(() => _penColor = InkColors.blue.toARGB32()),
+      ),
+      _ToolButton(
+        icon: Icons.circle,
+        iconColor: InkColors.black,
+        label: _penColor == InkColors.black.toARGB32() ? '• Nero' : 'Nero',
+        onTap: () => setState(() => _penColor = InkColors.black.toARGB32()),
+      ),
+      width(0.0025, 'Fine'),
+      width(0.004, 'Media'),
+      width(0.007, 'Spessa'),
+      _ToolButton(icon: Icons.undo, label: 'Annulla', onTap: ctrl.undo),
+      _ToolButton(icon: Icons.done, label: 'Fatto', onTap: _toggleDraw),
+    ]);
+  }
+
   Widget _selectionBar(PlacedElement e) => _bar([
         if (e.type.isText) _ToolButton(icon: Icons.edit_outlined, label: 'Modifica', onTap: () => _editText(e)),
-        if (!e.type.isImage) ...[
+        if (e.type.hasInkColor) ...[
           _ToolButton(
             icon: Icons.circle,
             iconColor: InkColors.blue,
@@ -766,11 +1039,12 @@ class EditorPageState extends State<EditorPage> {
 }
 
 class _ToolButton extends StatelessWidget {
-  const _ToolButton({required this.icon, required this.label, required this.onTap, this.iconColor});
+  const _ToolButton({required this.icon, required this.label, required this.onTap, this.iconColor, this.iconSize});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final Color? iconColor;
+  final double? iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -787,7 +1061,7 @@ class _ToolButton extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: iconColor ?? c.ink),
+              SizedBox(height: 24, child: Icon(icon, color: iconColor ?? c.ink, size: iconSize)),
               const SizedBox(height: 4),
               Text(label, style: TextStyle(fontSize: 12, color: c.ink), maxLines: 1, overflow: TextOverflow.ellipsis),
             ],
