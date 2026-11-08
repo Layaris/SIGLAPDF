@@ -12,6 +12,7 @@ class AppSettings {
     this.aiApiKey = '',
     this.aiModel = defaultAiModel,
     this.keepRecents = true,
+    this.checkUpdates = true,
   });
 
   static const defaultAiModel = 'claude-haiku-5-5';
@@ -27,6 +28,9 @@ class AppSettings {
   /// Ricorda gli ultimi PDF esportati (solo sul dispositivo).
   final bool keepRecents;
 
+  /// Avvisa quando su DMReleases c'è una versione nuova (solo app Android).
+  final bool checkUpdates;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? inkColor,
@@ -36,6 +40,7 @@ class AppSettings {
     String? aiApiKey,
     String? aiModel,
     bool? keepRecents,
+    bool? checkUpdates,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -46,6 +51,7 @@ class AppSettings {
         aiApiKey: aiApiKey ?? this.aiApiKey,
         aiModel: aiModel ?? this.aiModel,
         keepRecents: keepRecents ?? this.keepRecents,
+        checkUpdates: checkUpdates ?? this.checkUpdates,
       );
 
   /// Mappa completa (archivio locale).
@@ -63,6 +69,7 @@ class AppSettings {
         'aiEnabled': aiEnabled,
         'aiModel': aiModel,
         'keepRecents': keepRecents,
+        'checkUpdates': checkUpdates,
       };
 
   factory AppSettings.fromMap(Map<String, dynamic> m) {
@@ -79,6 +86,7 @@ class AppSettings {
       aiApiKey: (m['aiApiKey'] as String?) ?? '',
       aiModel: (model == null || model.isEmpty) ? defaultAiModel : model,
       keepRecents: m['keepRecents'] != false,
+      checkUpdates: m['checkUpdates'] != false,
     );
   }
 }

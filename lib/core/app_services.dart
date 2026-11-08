@@ -7,6 +7,7 @@ import '../features/settings/settings_repository.dart';
 import '../features/settings/signature_lock.dart';
 import '../features/signatures/signature_repository.dart';
 import '../services/field_detection/ocr.dart';
+import '../services/update_checker.dart';
 import 'storage/key_value_store.dart';
 import 'utils/file_access.dart';
 
@@ -20,6 +21,7 @@ class AppServices {
     required this.lock,
     required this.recents,
     required this.templates,
+    required this.updates,
     this.files = const SystemFileAccess(),
     this.ocr,
   });
@@ -30,6 +32,7 @@ class AppServices {
   final SignatureLock lock;
   final RecentsRepository recents;
   final TemplatesRepository templates;
+  final UpdateService updates;
   final FileAccess files;
 
   /// OCR sul dispositivo per i PDF scansionati (Android), null dove non c'è.
@@ -41,6 +44,7 @@ class AppServices {
     Authenticator? auth,
     bool isWeb = false,
     OcrEngine? ocr,
+    UpdateService? updates,
   }) {
     final settings = SettingsRepository(MemoryKeyValueStore());
     return AppServices(
@@ -50,6 +54,7 @@ class AppServices {
       lock: SignatureLock(settings, auth ?? _AlwaysYes(), isWeb: isWeb),
       recents: RecentsRepository(MemoryKeyValueStore()),
       templates: TemplatesRepository(MemoryKeyValueStore()),
+      updates: updates ?? UpdateService(MemoryKeyValueStore()),
       files: files,
       ocr: ocr,
     );

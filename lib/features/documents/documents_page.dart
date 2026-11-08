@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_services.dart';
 import '../../core/theme/app_colors.dart';
@@ -73,6 +74,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
           children: [
+            const _UpdateBanner(),
             hero,
             const SizedBox(height: 28),
             _ActionCard(
@@ -348,6 +350,48 @@ class _RecentsSection extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Avviso "C'è una nuova versione" (app Android).
+class _UpdateBanner extends StatelessWidget {
+  const _UpdateBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final updates = AppScope.of(context).updates;
+    return ListenableBuilder(
+      listenable: updates,
+      builder: (context, _) {
+        final u = updates.available;
+        if (u == null) return const SizedBox.shrink();
+        final c = AppColors.of(context);
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 16),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+            decoration: BoxDecoration(color: c.accent.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(14)),
+            child: Row(
+              children: [
+                Icon(Icons.system_update_outlined, color: c.accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Nuova versione di Sigla${u.version.isEmpty ? '' : ' ${u.version}'} (build ${u.build})',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                TextButton(onPressed: updates.dismiss, child: const Text('Non ora')),
+                FilledButton(
+                  onPressed: () => launchUrl(Uri.parse(u.url), mode: LaunchMode.externalApplication),
+                  child: const Text('Scarica'),
+                ),
+              ],
+            ),
           ),
         );
       },

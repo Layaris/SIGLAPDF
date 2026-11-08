@@ -285,7 +285,29 @@ class _InfoSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
     final t = TextStyle(color: c.secondary, height: 1.4);
+    final services = AppScope.of(context);
     return _Section(title: 'Privacy e informazioni', children: [
+      if (services.updates.supported) ...[
+        SwitchListTile(
+          title: const Text('Avvisami delle nuove versioni'),
+          subtitle: Text('Una volta al giorno legge la pagina pubblica delle versioni su GitHub. Nessun dato inviato.',
+              style: TextStyle(color: c.secondary)),
+          value: services.settings.value.checkUpdates,
+          onChanged: (v) => services.settings.update((x) => x.copyWith(checkUpdates: v)),
+        ),
+        ListTile(
+          leading: const Icon(Icons.system_update_outlined),
+          title: const Text('Controlla ora'),
+          onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            final u = await services.updates.check(force: true);
+            messenger.showSnackBar(SnackBar(
+              content: Text(u == null ? 'Hai già l\'ultima versione' : 'Nuova versione disponibile: vai in Documenti per scaricarla'),
+            ));
+          },
+        ),
+        const Divider(height: 1),
+      ],
       Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -295,7 +317,8 @@ class _InfoSection extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               'Documenti, firme e profilo restano su questo dispositivo. Niente account, niente cloud, '
-              'nessun tracciamento. L\'unico collegamento a internet è il riconoscimento AI, solo se lo attivi.',
+              'nessun tracciamento. Internet serve solo per il riconoscimento AI (se lo attivi) e, sull\'app '
+              'Android, per l\'avviso di nuova versione (si spegne qui sopra).',
               style: t,
             ),
             const SizedBox(height: 16),

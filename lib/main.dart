@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -14,6 +17,7 @@ import 'features/settings/signature_lock.dart';
 import 'features/signatures/signature_repository.dart';
 import 'services/document_sources.dart';
 import 'services/field_detection/ocr.dart';
+import 'services/update_checker.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +28,7 @@ Future<void> main() async {
   final profileStore = await HiveKeyValueStore.open('profile');
   final recentsStore = await HiveKeyValueStore.open('recents');
   final templatesStore = await HiveKeyValueStore.open('templates');
+  final updatesStore = await HiveKeyValueStore.open('updates');
   final settings = SettingsRepository(settingsStore);
   final services = AppServices(
     settings: settings,
@@ -32,10 +37,13 @@ Future<void> main() async {
     profile: ProfileRepository(profileStore),
     recents: RecentsRepository(recentsStore),
     templates: TemplatesRepository(templatesStore),
+    updates: UpdateService(updatesStore, enabledOnPlatform: !kIsWeb && defaultTargetPlatform == TargetPlatform.android),
     ocr: createDeviceOcr(),
   );
   final navigatorKey = GlobalKey<NavigatorState>();
   runApp(SiglaApp(services: services, navigatorKey: navigatorKey));
+  // Avviso di nuova versione (Android, al massimo una volta al giorno, si spegne nelle impostazioni).
+  if (settings.value.checkUpdates) unawaited(services.updates.check());
   // "Apri con" / "Condividi" un PDF (Android).
   await ShareIntentSource().start((pdf) async {
     // All'avvio la UI potrebbe non essere ancora pronta: si aspetta il navigatore (max 5 s).
