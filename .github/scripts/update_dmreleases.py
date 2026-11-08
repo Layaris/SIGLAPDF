@@ -31,7 +31,17 @@ def next_bullets(text, heading):
         return []
     body = text.split(heading, 1)[1]
     body = body.split('\n## ', 1)[0]
-    return [l.rstrip() for l in body.splitlines() if l.startswith('- ') and PLACEHOLDER not in l]
+    out = []
+    for line in body.splitlines():
+        if line.startswith('- '):
+            out.append(line.rstrip())
+        elif out and line.startswith('  ') and line.strip():
+            out[-1] += ' ' + line.strip()  # riga a capo dello stesso punto
+        elif not line.strip():
+            continue
+        elif out:
+            out.append(None)  # testo che non fa parte dell'elenco: chiude il punto precedente
+    return [l for l in out if l and PLACEHOLDER not in l]
 
 root = pathlib.Path(a.root)
 tag = f'sigla-build-{a.build}'
