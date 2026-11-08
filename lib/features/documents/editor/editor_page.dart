@@ -1209,6 +1209,8 @@ class EditorPageState extends State<EditorPage> {
           child: ScrollConfiguration(
             behavior: ScrollConfiguration.of(context).copyWith(dragDevices: PointerDeviceKind.values.toSet()),
             child: ListView(
+              // Con la chiave la posizione si salva e si ripristina quando la barra ricompare.
+              key: controller == null ? null : const PageStorageKey('editor-toolbar'),
               controller: controller,
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 8),

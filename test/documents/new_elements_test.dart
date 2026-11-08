@@ -145,4 +145,20 @@ void main() {
     expect(find.text('3'), findsWidgets);
     await tester.binding.setSurfaceSize(null);
   });
+
+  testWidgets('la barra strumenti resta scorsa dopo la barra di selezione', (tester) async {
+    final s = AppServices.inMemory();
+    final page = await pump(tester, s);
+    await scrollToolbar(tester);
+    expect(find.text('Evidenzia'), findsOneWidget);
+    await tester.tap(find.text('Evidenzia'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Fatto'));
+    await tester.pumpAndSettle();
+    expect(page.controller.selected, isNull);
+    // Ancora scorsa: "Evidenzia" visibile senza scorrere di nuovo.
+    expect(tester.getRect(find.text('Evidenzia')).right, lessThan(900));
+    expect(find.text('Penna').hitTestable(), findsOneWidget);
+    await tester.binding.setSurfaceSize(null);
+  });
 }
