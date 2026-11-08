@@ -58,6 +58,15 @@ https://github.com/Layaris/SIGLAPDF/actions/workflows/release.yml › **Run work
 **APK** acceso e **IPA** spento › **Run workflow**. Dura circa 10–15 minuti. Alla fine l'APK è in
 https://github.com/Layaris/DMReleases/releases con il nome **Sigla · build N**.
 
+## Web app online (facoltativo, una volta sola)
+
+1. Aprire https://github.com/Layaris/SIGLAPDF/settings/pages
+2. In **Build and deployment › Source** scegliere **GitHub Actions** (si salva da solo).
+3. Avviare https://github.com/Layaris/SIGLAPDF/actions/workflows/web.yml › **Run workflow**
+   (oppure chiedere a Claude). Dopo 3–5 minuti la web app è su https://layaris.github.io/SIGLAPDF/
+
+Per aggiornarla basta rilanciare lo stesso workflow.
+
 ## Nota: repository pubblico
 
 Layaris/SIGLAPDF è **pubblico**: chiunque può leggere il codice e scaricare gli artifact delle

@@ -1,0 +1,55 @@
+# Pubblica la web app su GitHub Pages: https://layaris.github.io/SIGLAPDF/
+# Si avvia a mano (Actions › Pubblica web app › Run workflow).
+# Una volta sola: Settings › Pages › Build and deployment › Source: "GitHub Actions".
+name: Pubblica web app
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.47.9
+
+jobs:
+  build:
+    name: Build web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test
+      - name: Build
+        run: |
+          VERSION=$(grep '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')
+          flutter build web --release --no-web-resources-cdn --no-wasm-dry-run \
+            --base-href /SIGLAPDF/ \
+            --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="web-${{ github.run_number }}"
+          touch build/web/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Pubblica su Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
