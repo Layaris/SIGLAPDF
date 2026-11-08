@@ -220,10 +220,10 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
 
 Vedi `docs/ROADMAP.md`. **Fasi 1–9 completate** più le migliorie (recenti, modelli, firma con data,
 penna/evidenziatore, zoom con due dita e miniature, più profili, caselle Sì/No e M/F, avviso di nuova
-versione, web app su Cloudflare Pages, inglese). 140+ test verdi, `flutter analyze` pulito,
+versione, web app su Cloudflare Pages, inglese). 154 test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
-esportazione, nessuna richiesta esterna). **APK pubblicato** (build 4 su DMReleases, firmato con la
-chiave `CN=Sigla, O=DM Releases`, ~100 MB universale); web app online su https://dmsigla.pages.dev.
+esportazione, nessuna richiesta esterna). **APK pubblicato** (build 5 su DMReleases, dopo l'audit; firmato con la
+chiave `CN=Sigla, O=DM Releases`, stesso certificato della build 4, ~100 MB universale); web app online su https://dmsigla.pages.dev.
 Correzioni della prima build: `compileSdk = 37` (receive_sharing_intent) con
 `android.suppressUnsupportedCompileSdk=37`, `proguard-rules.pro` con `-dontwarn` per i riconoscitori
 ML Kit non inclusi. Non ancora provato su un telefono vero. L'IPA per ora non si fa.
