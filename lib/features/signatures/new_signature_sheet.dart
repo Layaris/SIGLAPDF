@@ -48,7 +48,7 @@ class _NewSignatureSheetState extends State<_NewSignatureSheet> {
             SegmentedButton<SignatureKind>(
               segments: [
                 ButtonSegment(value: SignatureKind.signature, label: Text(tr('Firma')), icon: const Icon(Icons.gesture)),
-                const ButtonSegment(value: SignatureKind.initials, label: Text('Sigla'), icon: Icon(Icons.short_text)),
+                ButtonSegment(value: SignatureKind.initials, label: Text(tr('Sigla')), icon: const Icon(Icons.short_text)),
               ],
               selected: {_kind},
               onSelectionChanged: (s) => setState(() => _kind = s.first),

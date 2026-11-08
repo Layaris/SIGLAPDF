@@ -18,7 +18,7 @@ class SiglaApp extends StatefulWidget {
   State<SiglaApp> createState() => _SiglaAppState();
 }
 
-class _SiglaAppState extends State<SiglaApp> {
+class _SiglaAppState extends State<SiglaApp> with WidgetsBindingObserver {
   late final AppLifecycleListener _lifecycle;
 
   AppServices get services => widget.services;
@@ -28,10 +28,18 @@ class _SiglaAppState extends State<SiglaApp> {
     super.initState();
     // Le firme si richiudono quando l'app resta in background (vedi SignatureLock.grace).
     _lifecycle = AppLifecycleListener(onHide: services.lock.onHidden, onShow: services.lock.onShown);
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  /// Lingua "Sistema": se si cambia la lingua del telefono, l'app la segue subito.
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    if (mounted && services.settings.value.language == 'system') setState(() {});
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _lifecycle.dispose();
     super.dispose();
   }

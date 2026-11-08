@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,9 +42,14 @@ class _ProfilePageState extends State<ProfilePage> {
     _repo.addListener(_onRepo);
   }
 
-  /// Il profilo attivo può cambiare da fuori (es. import di un backup).
+  /// Il profilo può cambiare da fuori (es. import di un backup): se cambia il profilo attivo, o i suoi
+  /// dati non sono più quelli nei campi e non c'è una modifica in attesa, si ricaricano i campi.
+  /// Altrimenti al primo tasto i campi vecchi verrebbero salvati sopra i dati importati.
   void _onRepo() {
-    if (mounted && _repo.activeId != _loadedId) setState(_load);
+    if (!mounted) return;
+    final changedId = _repo.activeId != _loadedId;
+    final pending = _debounce?.isActive ?? false;
+    if (changedId || (!pending && jsonEncode(_repo.value.toMap()) != jsonEncode(_collect().toMap()))) setState(_load);
   }
 
   /// Carica nei campi il profilo attivo.

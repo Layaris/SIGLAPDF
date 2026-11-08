@@ -79,6 +79,9 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
     if (!mounted) return;
     if (bytes == null) {
       if (_source == null) {
+        // Permesso negato o file illeggibile: si avvisa prima di chiudere (prima si chiudeva in silenzio).
+        final err = _error;
+        if (err != null) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
         Navigator.of(context).pop();
         return;
       }
@@ -89,6 +92,7 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
       _picking = false;
       _source = bytes;
       _threshold = null;
+      _result = null; // il risultato dell'immagine precedente non vale più
     });
     await _process();
   }
@@ -110,9 +114,19 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
         _threshold ??= res.threshold;
       });
     } on SignatureProcessingException catch (e) {
-      if (mounted && job == _job) setState(() => _error = e.message);
+      if (mounted && job == _job) {
+        setState(() {
+          _error = e.message;
+          _result = null; // "Salva" non deve salvare il ritaglio di prima
+        });
+      }
     } catch (_) {
-      if (mounted && job == _job) setState(() => _error = tr('Immagine non valida.'));
+      if (mounted && job == _job) {
+        setState(() {
+          _error = tr('Immagine non valida.');
+          _result = null;
+        });
+      }
     } finally {
       if (mounted && job == _job) setState(() => _busy = false);
     }

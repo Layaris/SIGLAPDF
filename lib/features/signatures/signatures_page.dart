@@ -169,7 +169,7 @@ class SignatureCard extends StatelessWidget {
           context: context,
           builder: (context) => AlertDialog(
             title: Text(tr('Eliminare "{0}"?', [signature.name])),
-            content: const Text("L'eliminazione non si può annullare."),
+            content: Text(tr("L'eliminazione non si può annullare.")),
             actions: [
               TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Annulla'))),
               FilledButton(

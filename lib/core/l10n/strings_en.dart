@@ -341,4 +341,5 @@ const Map<String, String> stringsEn = {
   'Nessuna firma trovata. Prova a regolare la soglia o usa una foto più contrastata.': 'No signature found. Try adjusting the threshold or use a photo with more contrast.',
   'Il backup non contiene dati: non ho cambiato niente.': 'The backup contains no data: nothing was changed.',
   'Controllo non riuscito. Controlla internet e riprova.': 'Check failed. Check your connection and try again.',
+  'L\'eliminazione non si può annullare.': 'This cannot be undone.',
 };

@@ -67,6 +67,20 @@ void main() {
     return page;
   }
 
+  testWidgets('profilo: dopo un import con lo stesso profilo attivo i campi si aggiornano', (tester) async {
+    final s = AppServices.inMemory();
+    await s.profile.save(const Profile(values: {ProfileField.firstName: 'Vecchio'}));
+    await tester.pumpWidget(wrapWithServices(s, const ProfilePage()));
+    await tester.pump();
+    expect(find.widgetWithText(TextField, 'Vecchio'), findsOneWidget);
+    final id = s.profile.activeId;
+    await s.profile.importProfiles([NamedProfile(id: id, label: 'Io', profile: const Profile(values: {ProfileField.firstName: 'Importato'}))],
+        replace: true, activeId: id);
+    await tester.pump();
+    expect(find.widgetWithText(TextField, 'Importato'), findsOneWidget,
+        reason: 'prima restava "Vecchio" e al primo tasto veniva salvato sopra i dati importati');
+  });
+
   testWidgets('compila automaticamente: anteprima, conferma, inserimento', (tester) async {
     final services = AppServices.inMemory();
     await services.profile.save(const Profile(values: {

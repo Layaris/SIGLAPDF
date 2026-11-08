@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sigla/core/app_services.dart';
+import 'package:sigla/features/backup/backup_dialogs.dart';
 import 'package:sigla/features/documents/editor/editor_controller.dart';
 import 'package:sigla/features/documents/editor/editor_page.dart';
 import 'package:sigla/features/settings/settings_page.dart';
@@ -82,6 +83,25 @@ void main() {
     await tester.tap(find.text('Sblocca'));
     await tester.pumpAndSettle();
     expect(find.text('Crea la tua firma'), findsOneWidget);
+  });
+
+  testWidgets('esporta backup con le firme bloccate: serve l\'autenticazione', (tester) async {
+    final auth = FakeAuth();
+    final s = AppServices.inMemory(auth: auth);
+    await s.lock.setEnabled(true);
+    s.lock.lock();
+    await tester.pumpWidget(wrapWithServices(
+      s,
+      Builder(builder: (context) => TextButton(onPressed: () => exportBackupFlow(context), child: const Text('esporta'))),
+    ));
+    auth.answer = false;
+    await tester.tap(find.text('esporta'));
+    await tester.pumpAndSettle();
+    expect(find.text('Proteggi il backup'), findsNothing, reason: 'senza impronta/PIN niente backup delle firme');
+    auth.answer = true;
+    await tester.tap(find.text('esporta'));
+    await tester.pumpAndSettle();
+    expect(find.text('Proteggi il backup'), findsOneWidget);
   });
 
   testWidgets('impostazioni: tema, inchiostro, AI con avviso, nota legale', (tester) async {
