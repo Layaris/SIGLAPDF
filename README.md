@@ -67,7 +67,7 @@ e `CLOUDFLARE_ACCOUNT_ID`, vedi [docs/PUBBLICAZIONE.md](docs/PUBBLICAZIONE.md)).
 flutter build apk --release
 ```
 
-Per ora l'APK è firmato con la chiave di debug. Per usare una chiave propria:
+Le build pubblicate sono firmate con la chiave di release (secret su GitHub). Per firmare in locale:
 
 1. Crea il keystore (una volta sola, conservalo con cura):
    ```bash

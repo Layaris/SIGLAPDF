@@ -45,7 +45,7 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Build web offline (pdf.js e CanvasKit inclusi)
 - ✅ Workflow GitHub manuale per APK e IPA pubblicati su DMReleases (non ancora eseguito)
 - ✅ Cartella `sigla/` e pagina del sito in DMReleases
-- ⬜ Prima build APK/IPA su GitHub (verifica reale di Android e iOS)
+- ✅ Prima build APK su GitHub (build 4, firmata con la chiave di release); IPA da fare
 
 ## Fase 8 — Dopo il rilascio
 - ✅ OCR sul dispositivo per i PDF scansionati (Android, Google ML Kit, offline)

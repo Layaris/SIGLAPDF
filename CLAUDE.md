@@ -187,16 +187,19 @@ Vedi `docs/ROADMAP.md`. **Fasi 1–9 completate** più le migliorie (recenti, mo
 penna/evidenziatore, zoom con due dita e miniature, più profili, caselle Sì/No e M/F, avviso di nuova
 versione, web app su Cloudflare Pages, inglese). 140+ test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
-esportazione, nessuna richiesta esterna). APK **non ancora compilato**: la prima verifica reale di
-Android sarà il workflow *Pubblica*. L'IPA per ora non si fa (opzione spenta di default).
+esportazione, nessuna richiesta esterna). **APK pubblicato** (build 4 su DMReleases, firmato con la
+chiave `CN=Sigla, O=DM Releases`, ~100 MB universale); web app online su https://dmsigla.pages.dev.
+Correzioni della prima build: `compileSdk = 37` (receive_sharing_intent) con
+`android.suppressUnsupportedCompileSdk=37`, `proguard-rules.pro` con `-dontwarn` per i riconoscitori
+ML Kit non inclusi. Non ancora provato su un telefono vero. L'IPA per ora non si fa.
 In SIGLAPDF il branch `claude/determined-keller-5b8xki` è l'unico ed è quello predefinito.
 In DMReleases la cartella `sigla/` è già su `main` (Layaris/DMReleases#1).
 
 ## Prossimi passi
 
-1. L'agente sul PC dell'utente segue `docs/PUBBLICAZIONE.md`: token GitHub, password, keystore
-   (workflow `keystore.yml`), token Cloudflare; tutto salvato anche in
-   `C:\Users\tyrig\Documents\progetti claude\CHIAVI PRIVATE\SIGLA` e nei 7 secret.
-2. Lanciare *Pubblica* (solo Android) e *Pubblica web app* e correggere eventuali errori di build (non verificabili qui:
-   nel container non c'è l'SDK Android).
+1. Configurazione fatta: 7 secret su SIGLAPDF; chiavi dell'utente in
+   `C:\Users\tyrig\Documents\progetti claude\CHIAVI PRIVATE\SIGLA` (keystore creato sul suo PC,
+   token GitHub solo su DMReleases con Contents RW).
+2. L'utente prova l'APK sul telefono: correggere quello che non va. Possibile miglioria: APK divisi per
+   architettura (`--split-per-abi`) per ridurre i ~100 MB.
 3. Idee future in `docs/ROADMAP.md`.
