@@ -22,7 +22,7 @@ import 'services/update_checker.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('it_IT');
-  await initializeDateFormatting('en');
+  await initializeDateFormatting('en_US');
   await Hive.initFlutter('sigla');
   final settingsStore = await HiveKeyValueStore.open('settings');
   final signatureStore = await HiveKeyValueStore.open('signatures');

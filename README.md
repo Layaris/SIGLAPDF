@@ -15,6 +15,10 @@ Tutto resta sul dispositivo: nessun account, nessun cloud, nessun tracciamento.
   testo, data, spunta e croce; "Sigla tutte le pagine"; esporta il PDF appiattito.
 - **Moduli**: compila i campi AcroForm e riconosce anche i campi non segnalati
   ("Nome: ______") proponendo i dati del tuo profilo. Riconoscimento AI facoltativo.
+- **Recenti** (ultimi PDF esportati), **modelli** per i moduli che ritornano, **più profili**.
+- **Penna**, **evidenziatore**, **firma con data**, zoom con due dita e miniature delle pagine.
+- Caselle **Sì/No** e **M/F** riconosciute e spuntate; OCR sul telefono per le scansioni (Android).
+- Italiano e **inglese**. Avviso di nuova versione (app Android).
 - **Backup** cifrato con password in un unico file `.sigla`.
 - **Blocco** delle firme con impronta o Face ID (mobile).
 

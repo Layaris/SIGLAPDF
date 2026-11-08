@@ -142,6 +142,21 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
   `WordBox` in punti e passano dallo stesso dizionario (`detectFieldsInLines`). ML Kit importa
   `dart:io`: è isolato con import condizionale (`ocr.dart` → `ocr_factory_io.dart` / `_stub.dart`),
   così la web app compila. Su iOS per ora disattivato (non provato; ML Kit può richiedere iOS 15.5+).
+- **Recenti**: ultimi 12 PDF esportati in Hive (box `recents`), max 25 MB l'uno, con miniatura;
+  non vanno nel backup; si spengono in Impostazioni (e si cancellano).
+- **Modelli**: `FormTemplate` (box `templates`) con elementi serializzati senza immagini; impronta del
+  modulo (`documentFingerprint`: lettere/cifre delle prime 2 pagine + numero pagine, due FNV-1a a 32
+  bit scomposti per non superare 2^53 sul web). Proposta automatica in cima all'editor.
+- **Profili multipli**: chiavi `profiles` (lista) e `active`; la vecchia chiave `profile` migra a "Io".
+  Backup **schema 3** (profili + modelli), migrazione 2→3 in `BackupMigrations`.
+- **Caselle di scelta**: `FieldKind.gender`/`yesNo` con `DetectedField.options`; caselle `[ ]`, `( )`,
+  `☐`… (spazi multipli ammessi: l'estrazione separa i caratteri) o "Sesso M F"; spunta sulla casella.
+- **Penna/evidenziatore**: tratti come `ElementType.ink` con punti normalizzati nel riquadro
+  (`inkElementFromStroke`); evidenziatore esportato con trasparenza `multiply`.
+- **Avviso di versione**: `UpdateService` legge `raw.githubusercontent.com/Layaris/DMReleases/main/sigla/latest.json`
+  (max 1 volta/20 h, solo Android, build da `--dart-define=APP_BUILD`).
+- **Web app**: workflow `web.yml` → GitHub Pages `https://layaris.github.io/SIGLAPDF/` (base href
+  `/SIGLAPDF/`). Serve attivare Pages (Source: GitHub Actions) una volta.
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -164,7 +179,9 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 
 ## Stato attuale
 
-Vedi `docs/ROADMAP.md`. **Tutte le 7 fasi completate.** 107+ test verdi, `flutter analyze` pulito,
+Vedi `docs/ROADMAP.md`. **Fasi 1–9 completate** più le migliorie (recenti, modelli, firma con data,
+penna/evidenziatore, zoom con due dita e miniature, più profili, caselle Sì/No e M/F, avviso di nuova
+versione, web app su GitHub Pages, inglese). 140+ test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
 esportazione, nessuna richiesta esterna). APK **non ancora compilato**: la prima verifica reale di
 Android sarà il workflow *Pubblica*. L'IPA per ora non si fa (opzione spenta di default).
