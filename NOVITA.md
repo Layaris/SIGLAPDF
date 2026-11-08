@@ -8,6 +8,10 @@ nel CHANGELOG di Layaris/DMReleases, e qui diventa "build-N".
 
 ## Prossima versione
 
+- Nessuna novità per ora
+
+## build-5 · 8 novembre 2026
+
 - Compilazione automatica: riconosce anche le caselle scritte dopo l'opzione, come "Sì [ ] No [ ]" e "M [ ] F [ ]"
 - PDF esportato: firme e testi restano sopra i campi colorati del modulo (prima potevano finire coperti)
 - I campi compilabili delle pagine ruotate si vedono e si toccano nell'editor
