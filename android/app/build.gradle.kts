@@ -16,7 +16,8 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "it.sigla.sigla"
-    compileSdk = flutter.compileSdkVersion
+    // receive_sharing_intent richiede di compilare con l'SDK 37 (targetSdk resta quello di Flutter).
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
