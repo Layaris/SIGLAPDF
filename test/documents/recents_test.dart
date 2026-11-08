@@ -33,6 +33,15 @@ void main() {
     expect(r.isEmpty, isTrue);
   });
 
+  test('tetto allo spazio totale: si tolgono i più vecchi, il nuovo resta sempre', () async {
+    final r = RecentsRepository(MemoryKeyValueStore(), maxItems: 10, maxBytes: 100, maxTotalBytes: 150);
+    final t0 = DateTime(2026, 1, 1);
+    for (var i = 0; i < 4; i++) {
+      await r.add(name: 'doc$i.pdf', pdf: Uint8List(60), pageCount: 1, now: t0.add(Duration(minutes: i)));
+    }
+    expect(r.all.map((d) => d.name), ['doc3.pdf', 'doc2.pdf'], reason: '2 × 60 = 120 ≤ 150, il terzo sforerebbe');
+  });
+
   testWidgets('documenti: i recenti compaiono e si riaprono', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1400));
     final s = AppServices.inMemory();

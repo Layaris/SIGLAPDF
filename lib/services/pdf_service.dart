@@ -144,10 +144,8 @@ class PdfService {
         if (p != null) page = doc.pages.indexOf(p);
         if (page >= 0) {
           final info = pages[page];
-          // I bounds dei campi sono nello spazio non ruotato: convertiti solo se la pagina non è ruotata.
-          if (info.rotation == 0) {
-            rect = NormRect.fromRect(f.bounds, info.unrotated).clamped(minSize: 0.001);
-          }
+          // I bounds dei campi sono nello spazio non ruotato: si portano nella pagina come la vede l'utente.
+          rect = NormRect.fromRect(info.coords.unrotatedRectToVisual(f.bounds), info.visual).clamped(minSize: 0.001);
         }
       } catch (_) {}
       final (kind, value, options, multiline) = switch (f) {

@@ -51,7 +51,7 @@ class RecentDocument {
 /// Ultimi PDF esportati (al massimo [maxItems], ognuno al massimo [maxBytes]).
 /// Non vanno nel backup: restano solo su questo dispositivo.
 class RecentsRepository extends ChangeNotifier {
-  RecentsRepository(this._store, {this.maxItems = 12, this.maxBytes = 25 * 1024 * 1024}) {
+  RecentsRepository(this._store, {this.maxItems = 12, this.maxBytes = 25 * 1024 * 1024, this.maxTotalBytes = 80 * 1024 * 1024}) {
     for (final k in _store.keys) {
       final d = RecentDocument.fromMap(asStringMap(_store.get(k)));
       if (d != null) _items[d.id] = d;
@@ -61,6 +61,7 @@ class RecentsRepository extends ChangeNotifier {
   final KeyValueStore _store;
   final int maxItems;
   final int maxBytes;
+  final int maxTotalBytes;
   final Map<String, RecentDocument> _items = {};
   static const _uuid = Uuid();
 
@@ -79,10 +80,7 @@ class RecentsRepository extends ChangeNotifier {
     DateTime? now,
   }) async {
     if (pdf.length > maxBytes) return null;
-    for (final old in _items.values.where((d) => d.name == name).toList()) {
-      _items.remove(old.id);
-      await _store.delete(old.id);
-    }
+    final replaced = _items.values.where((d) => d.name == name).toList();
     final d = RecentDocument(
       id: _uuid.v4(),
       name: name,
@@ -91,9 +89,22 @@ class RecentsRepository extends ChangeNotifier {
       pdf: pdf,
       thumbnail: thumbnail,
     );
-    _items[d.id] = d;
+    // Prima il nuovo, poi si tolgono il vecchio con lo stesso nome e quelli in eccesso.
     await _store.put(d.id, d.toMap());
-    for (final extra in all.skip(maxItems).toList()) {
+    _items[d.id] = d;
+    for (final old in replaced) {
+      _items.remove(old.id);
+      await _store.delete(old.id);
+    }
+    // Oltre al numero, un tetto allo spazio totale: i recenti stanno tutti in memoria.
+    var total = 0;
+    final keep = <String>{};
+    for (final r in all) {
+      if (keep.length >= maxItems || (keep.isNotEmpty && total + r.pdf.length > maxTotalBytes)) continue;
+      keep.add(r.id);
+      total += r.pdf.length;
+    }
+    for (final extra in all.where((r) => !keep.contains(r.id)).toList()) {
       _items.remove(extra.id);
       await _store.delete(extra.id);
     }

@@ -38,6 +38,10 @@ Future<void> openPdfEditor(BuildContext context, {required String name, required
   } on PdfOpenException catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     return;
+  } catch (_) {
+    // Qualsiasi altro errore di lettura (es. albero delle pagine rovinato): messaggio, non un errore muto.
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Impossibile aprire il file.'))));
+    return;
   }
   if (!context.mounted) return;
   await Navigator.of(context).push(
@@ -349,8 +353,10 @@ class EditorPageState extends State<EditorPage> {
 
   Future<void> _editText(PlacedElement e) async {
     final t = await showTextInputDialog(context, title: tr('Modifica testo'), initial: e.text, action: tr('Salva'));
-    if (t == null) return;
-    ctrl.updateElement(e.copyWith(text: t));
+    if (t == null || !mounted) return;
+    // Si rilegge l'elemento: nel frattempo può essere stato spostato o eliminato.
+    final current = ctrl.elements.where((x) => x.id == e.id).firstOrNull;
+    if (current != null) ctrl.updateElement(current.copyWith(text: t));
   }
 
   // ---------- Modelli ----------
@@ -392,6 +398,9 @@ class EditorPageState extends State<EditorPage> {
       today: todayText(),
       signaturePng: services.signatures.defaultOf(SignatureKind.signature)?.png,
       initialsPng: services.signatures.defaultOf(SignatureKind.initials)?.png,
+      signatureAspect: services.signatures.defaultOf(SignatureKind.signature)?.aspectRatio,
+      initialsAspect: services.signatures.defaultOf(SignatureKind.initials)?.aspectRatio,
+      pageAspects: [for (final p in ctrl.info.pages) p.aspectRatio],
     );
     ctrl.addAll(items);
     final skipped = t.elements.length - items.length;
@@ -494,7 +503,11 @@ class EditorPageState extends State<EditorPage> {
       img?.dispose();
       thumb = data?.buffer.asUint8List();
     } catch (_) {}
-    await services.recents.add(name: exportName, pdf: out, pageCount: ctrl.pageCount, thumbnail: thumb);
+    try {
+      await services.recents.add(name: exportName, pdf: out, pageCount: ctrl.pageCount, thumbnail: thumb);
+    } catch (_) {
+      // Spazio pieno o archivio non disponibile: il PDF è comunque esportato, manca solo tra i recenti.
+    }
   }
 
   Future<void> _showExported(Uint8List out) async {

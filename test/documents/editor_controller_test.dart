@@ -87,6 +87,22 @@ void main() {
     expect(c.elements, hasLength(1));
   });
 
+  test('digitazione, trascinamento e di nuovo digitazione: tre passi di annulla', () {
+    final c = _ctrl(form: true);
+    final e = c.add(type: ElementType.text, page: 0, rect: const NormRect(0.1, 0.1, 0.1, 0.1), text: 'x');
+    c.setFormValue('nome', 'A');
+    c.setFormValue('nome', 'An');
+    c.beginChange();
+    c.updateElement(e.copyWith(rect: const NormRect(0.3, 0.3, 0.1, 0.1)));
+    c.endChange();
+    c.setFormValue('nome', 'Anna');
+    c.undo();
+    expect(c.formValues['nome'], 'An', reason: 'la seconda digitazione è un passo a parte');
+    expect(c.elements.single.rect.x, closeTo(0.3, 1e-9));
+    c.undo();
+    expect(c.elements.single.rect.x, closeTo(0.1, 1e-9));
+  });
+
   group('ElementFactory', () {
     const f = ElementFactory(Size(595, 842));
 

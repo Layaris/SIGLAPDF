@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'dart:ui';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sigla/core/utils/pdf_coords.dart';
 import 'package:sigla/features/documents/models/placed_element.dart';
@@ -132,6 +134,27 @@ void main() {
     expect(doc.pages.count, 2);
     expect(PdfTextExtractor(doc).extractText(startPageIndex: 0, endPageIndex: 0), contains('Mario'));
     doc.dispose();
+  });
+
+  test('campo AcroForm su pagina ruotata: posizione nella pagina come la vede l\'utente', () {
+    final doc = PdfDocument();
+    doc.pageSettings.margins.all = 0;
+    doc.pageSettings.size = const Size(595, 842);
+    final page = doc.pages.add();
+    doc.form.fields.add(PdfTextBoxField(page, 'nome', const Rect.fromLTWH(50, 100, 200, 20)));
+    final loaded = PdfDocument(inputBytes: doc.saveSync());
+    doc.dispose();
+    loaded.pages[0].rotation = PdfPageRotateAngle.rotateAngle90;
+    final bytes = Uint8List.fromList(loaded.saveSync());
+    loaded.dispose();
+    final info = const PdfService().inspect(bytes);
+    final f = info.fields.single;
+    expect(f.rect, isNotNull, reason: 'prima mancava: niente riquadro né esclusione dal riconoscimento');
+    final r = f.rect!;
+    // Pagina girata: il campo largo 200 pt diventa alto 200/595 della pagina visiva.
+    expect(r.h, closeTo(200 / 595, 0.01));
+    expect(r.w, closeTo(20 / 842, 0.01));
+    expect(r.x >= 0 && r.y >= 0 && r.x + r.w <= 1 && r.y + r.h <= 1, isTrue);
   });
 
   test('sanitizeForStandardFont', () {

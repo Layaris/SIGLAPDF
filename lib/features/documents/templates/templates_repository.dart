@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../core/l10n/l10n.dart';
 import '../../../core/storage/key_value_store.dart';
+import '../../../core/utils/pdf_coords.dart';
 import '../models/placed_element.dart';
 
 /// Modello di un modulo ricorrente: dove vanno firma, testi, data…
@@ -91,10 +92,6 @@ class TemplatesRepository extends ChangeNotifier {
     String? fingerprint,
   }) async {
     final old = matching(fingerprint);
-    if (old != null) {
-      _items.remove(old.id);
-      await _store.delete(old.id);
-    }
     final t = FormTemplate(
       id: _uuid.v4(),
       name: name.trim().isEmpty ? tr('Modello') : name.trim(),
@@ -103,8 +100,13 @@ class TemplatesRepository extends ChangeNotifier {
       fingerprint: fingerprint,
       elements: [for (final e in elements) PlacedElement.fromTemplateMap(e.toTemplateMap())!],
     );
-    _items[t.id] = t;
+    // Prima si salva il nuovo, poi si toglie il vecchio: se il salvataggio fallisce il vecchio resta.
     await _store.put(t.id, t.toMap());
+    _items[t.id] = t;
+    if (old != null) {
+      _items.remove(old.id);
+      await _store.delete(old.id);
+    }
     notifyListeners();
     return t;
   }
@@ -149,7 +151,20 @@ List<PlacedElement> elementsFromTemplate(
   required String today,
   Uint8List? signaturePng,
   Uint8List? initialsPng,
+  double? signatureAspect,
+  double? initialsAspect,
+  List<double>? pageAspects,
 }) {
+  // La firma di oggi può avere proporzioni diverse da quella usata per il modello: si tiene la larghezza
+  // e la riga di base (il fondo del riquadro) e si ricalcola l'altezza, così non si deforma.
+  NormRect fit(PlacedElement e, double? aspect, {double share = 1}) {
+    final pa = pageAspects != null && e.page < pageAspects.length ? pageAspects[e.page] : null;
+    if (aspect == null || aspect <= 0 || pa == null || pa <= 0) return e.rect;
+    final r = e.rect;
+    final h = (r.w * pa / aspect) / share; // pa = larghezza/altezza della pagina
+    return NormRect(r.x, r.y + r.h - h, r.w, h).clamped();
+  }
+
   final out = <PlacedElement>[];
   for (final e in t.elements) {
     if (e.page >= pageCount) continue;
@@ -157,10 +172,15 @@ List<PlacedElement> elementsFromTemplate(
       case ElementType.signature:
       case ElementType.signedDate:
         if (signaturePng == null) continue;
-        out.add(e.copyWith(image: signaturePng, text: e.type == ElementType.signedDate ? today : e.text));
+        final dated = e.type == ElementType.signedDate;
+        out.add(e.copyWith(
+          image: signaturePng,
+          text: dated ? today : e.text,
+          rect: dated ? e.rect : fit(e, signatureAspect),
+        ));
       case ElementType.initials:
         if (initialsPng == null) continue;
-        out.add(e.copyWith(image: initialsPng));
+        out.add(e.copyWith(image: initialsPng, rect: fit(e, initialsAspect)));
       case ElementType.date:
         out.add(e.copyWith(text: today));
       default:

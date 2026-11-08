@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../../core/l10n/l10n.dart';
@@ -178,7 +180,8 @@ class ElementView extends StatelessWidget {
     var w = r.w + d.delta.dx / pageSize.width;
     var h = r.h + d.delta.dy / pageSize.height;
     final minW = 12 / pageSize.width, minH = 8 / pageSize.height;
-    w = w.clamp(minW, 1 - r.x);
+    // Vicino al bordo lo spazio può essere meno del minimo: clamp con min > max lancerebbe un errore.
+    w = w.clamp(math.min(minW, 1 - r.x), math.max(minW, 1 - r.x));
     if (element.keepsAspect) {
       // Mantiene le proporzioni in pixel.
       final aspect = (r.w * pageSize.width) / (r.h * pageSize.height);
@@ -188,7 +191,7 @@ class ElementView extends StatelessWidget {
         w = (h * pageSize.height * aspect) / pageSize.width;
       }
     } else {
-      h = h.clamp(minH, 1 - r.y);
+      h = h.clamp(math.min(minH, 1 - r.y), math.max(minH, 1 - r.y));
     }
     onChanged(element.copyWith(rect: NormRect(r.x, r.y, w, h)));
   }

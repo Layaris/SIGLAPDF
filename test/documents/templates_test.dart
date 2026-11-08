@@ -77,6 +77,12 @@ void main() {
     final withSig = elementsFromTemplate(t, pageCount: 3, today: '08/11/2026', signaturePng: tinyPng());
     expect(withSig, hasLength(3));
     expect(withSig[1].image, isNotNull);
+    // Firma attuale con proporzioni diverse: stessa larghezza e stesso fondo, altezza ricalcolata.
+    final fitted = elementsFromTemplate(t, pageCount: 3, today: '', signaturePng: tinyPng(), signatureAspect: 4, pageAspects: const [0.5, 0.5, 0.5]);
+    final r = fitted[1].rect;
+    expect(r.w, closeTo(0.2, 1e-9));
+    expect(r.h, closeTo(0.2 * 0.5 / 4, 1e-9), reason: 'larghezza in pixel / altezza in pixel = 4');
+    expect(r.y + r.h, closeTo(0.6, 1e-9), reason: 'resta sulla stessa riga');
   });
 
   testWidgets('editor: salva il modello e lo propone riaprendo lo stesso modulo', (tester) async {

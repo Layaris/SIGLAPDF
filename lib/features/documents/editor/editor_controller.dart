@@ -126,7 +126,10 @@ class EditorController extends ChangeNotifier {
   }
 
   /// Inizio di un trascinamento/ridimensionamento: la cronologia registra solo la fine.
-  void beginChange() => _pending ??= _snap;
+  void beginChange() {
+    _typingField = null; // la digitazione successiva è un nuovo passo di annulla
+    _pending ??= _snap;
+  }
 
   /// Aggiorna un elemento durante un gesto (senza cronologia se è in corso un cambio).
   void updateElement(PlacedElement e) {
@@ -145,6 +148,7 @@ class EditorController extends ChangeNotifier {
     if (p == null) return;
     if (!listEquals(p.elements, _elements) || !mapEquals(p.form, _formValues)) {
       _undo.add(p);
+      if (_undo.length > 100) _undo.removeAt(0);
       _redo.clear();
       notifyListeners();
     }
