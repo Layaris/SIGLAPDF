@@ -19,6 +19,18 @@ class FillProposal {
   bool include;
 
   bool get isSignature => field.kind == FieldKind.signature;
+  bool get isChoice => field.kind.isChoice;
+}
+
+/// Opzione proposta per un campo a scelta: quella che corrisponde a [value] (es. "M"), se c'è.
+String matchChoice(DetectedField f, String value) {
+  final v = value.trim().toLowerCase();
+  if (v.isEmpty) return '';
+  for (final o in f.options) {
+    final l = o.label.toLowerCase();
+    if (l == v || l.startsWith(v) || (v == 'm' && l.startsWith('masch')) || (v == 'f' && l.startsWith('femm'))) return o.label;
+  }
+  return '';
 }
 
 /// Crea le proposte dai campi trovati. I campi senza valore nel profilo partono esclusi.
@@ -32,7 +44,8 @@ List<FillProposal> buildProposals(List<DetectedField> fields, Profile profile, {
   return [
     for (final f in sorted)
       () {
-        final v = f.kind.proposedValue(profile, today: today);
+        var v = f.kind.proposedValue(profile, today: today);
+        if (f.kind.isChoice) v = matchChoice(f, v);
         final include = f.kind == FieldKind.signature ? hasSignature : v.isNotEmpty;
         return FillProposal(field: f, value: v, include: include);
       }(),
@@ -71,6 +84,16 @@ List<PlacedElement> proposalsToElements(
         rect: NormRect.fromRect(rect, size).clamped(),
         image: signaturePng,
       ));
+      continue;
+    }
+    if (p.isChoice) {
+      // Spunta sulla casella dell'opzione scelta.
+      final opt = f.options.where((o) => o.label == p.value).firstOrNull;
+      if (opt == null) continue;
+      final box = opt.rect.toRect(size);
+      final side = math.max(box.width, box.height).clamp(8.0, 18.0);
+      final sq = Rect.fromCenter(center: box.center, width: side, height: side);
+      out.add(PlacedElement(id: '', type: ElementType.check, page: f.page, rect: NormRect.fromRect(sq, size).clamped(minSize: 0.005), color: color));
       continue;
     }
     final text = p.value.trim();

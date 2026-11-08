@@ -29,7 +29,8 @@ enum ProfileField {
   city('Città'),
   province('Provincia'),
   phone('Telefono'),
-  email('Email');
+  email('Email'),
+  gender('Sesso');
 
   const ProfileField(this.label);
   final String label;
@@ -64,7 +65,7 @@ class Profile {
   List<(String label, String value)> get filledEntries => [
         if (fullName.isNotEmpty) ('Nome e cognome', fullName),
         for (final f in ProfileField.values)
-          if (this[f].isNotEmpty) (f.label, this[f]),
+          if (this[f].isNotEmpty && f != ProfileField.gender) (f.label, this[f]),
         if (this[ProfileField.address].isNotEmpty && this[ProfileField.city].isNotEmpty) ('Indirizzo completo', fullAddress),
         for (final c in custom)
           if (c.key.isNotEmpty && c.value.isNotEmpty) (c.key, c.value),
@@ -106,5 +107,31 @@ class Profile {
     }
     final keys = custom.map((c) => c.key.toLowerCase()).toSet();
     return Profile(values: merged, custom: [...custom, ...other.custom.where((c) => !keys.contains(c.key.toLowerCase()))]);
+  }
+}
+
+/// Profilo con un nome (es. "Io", "Mamma") per chi compila moduli anche per altri.
+@immutable
+class NamedProfile {
+  const NamedProfile({required this.id, required this.label, required this.profile});
+  final String id;
+  final String label;
+  final Profile profile;
+
+  NamedProfile copyWith({String? label, Profile? profile}) =>
+      NamedProfile(id: id, label: label ?? this.label, profile: profile ?? this.profile);
+
+  Map<String, dynamic> toMap() => {'id': id, 'label': label, 'data': profile.toMap()};
+
+  static NamedProfile? fromMap(Map<String, dynamic> m) {
+    final id = m['id'];
+    final data = m['data'];
+    if (id is! String || data is! Map) return null;
+    final label = (m['label'] as String?)?.trim();
+    return NamedProfile(
+      id: id,
+      label: label == null || label.isEmpty ? 'Profilo' : label,
+      profile: Profile.fromMap(data.cast<String, dynamic>()),
+    );
   }
 }

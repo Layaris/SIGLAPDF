@@ -18,7 +18,12 @@ enum FieldKind {
   place('Luogo'),
   placeAndDate('Luogo e data'),
   signature('Firma'),
+  gender('Sesso'),
+  yesNo('Sì / No'),
   text('Testo');
+
+  /// Campi a scelta: si risponde spuntando una casella.
+  bool get isChoice => this == gender || this == yesNo;
 
   const FieldKind(this.label);
   final String label;
@@ -50,6 +55,9 @@ enum FieldKind {
         place => p[ProfileField.city],
         placeAndDate => [p[ProfileField.city], today].where((s) => s.isNotEmpty).join(', '),
         signature => '',
+        // Per le scelte il valore è l'etichetta dell'opzione da spuntare.
+        gender => p[ProfileField.gender].toUpperCase(),
+        yesNo => '',
         text => '',
       };
 }

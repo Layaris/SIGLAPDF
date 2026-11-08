@@ -35,6 +35,26 @@ void main() {
     expect(services.profile.value.custom.single, const CustomField('Patente', 'U123'));
   });
 
+  testWidgets('profilo: aggiunge un secondo profilo e passa dall\'uno all\'altro', (tester) async {
+    final services = AppServices.inMemory();
+    await services.profile.save(const Profile(values: {ProfileField.firstName: 'Mario'}));
+    await tester.pumpWidget(wrapWithServices(services, const ProfilePage()));
+    expect(find.widgetWithText(ChoiceChip, 'Io'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ActionChip, 'Profilo'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Mamma');
+    await tester.tap(find.widgetWithText(FilledButton, 'Salva'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ChoiceChip, 'Mamma'), findsOneWidget);
+    expect(find.widgetWithText(TextField, 'Mario'), findsNothing, reason: 'campi vuoti nel nuovo profilo');
+    await tester.enterText(find.widgetWithText(TextField, 'Nome'), 'Lucia');
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.tap(find.widgetWithText(ChoiceChip, 'Io'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextField, 'Mario'), findsOneWidget);
+    expect(services.profile.profiles.last.profile[ProfileField.firstName], 'Lucia');
+  });
+
   Future<EditorPage> pumpEditor(WidgetTester tester, AppServices services, {bool form = false}) async {
     await tester.binding.setSurfaceSize(const Size(900, 1000));
     final bytes = form ? buildFormPdf() : buildUnmarkedFormPdf();

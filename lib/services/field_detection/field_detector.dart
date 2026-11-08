@@ -4,6 +4,15 @@ import '../../core/utils/pdf_coords.dart';
 import '../pdf_service.dart';
 import 'field_kind.dart';
 
+/// Opzione di un campo a scelta (es. "M", "Sì") con la casella da spuntare.
+class ChoiceOption {
+  const ChoiceOption(this.label, this.rect);
+  final String label;
+
+  /// Casella (o punto accanto all'opzione) normalizzata sulla pagina.
+  final NormRect rect;
+}
+
 /// Campo trovato su una pagina, ancora da confermare.
 class DetectedField {
   const DetectedField({
@@ -13,7 +22,11 @@ class DetectedField {
     required this.rect,
     required this.source,
     this.lineHeight,
+    this.options = const [],
   });
+
+  /// Opzioni dei campi a scelta ([FieldKind.isChoice]).
+  final List<ChoiceOption> options;
 
   final int page;
   final FieldKind kind;

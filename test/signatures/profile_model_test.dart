@@ -39,4 +39,25 @@ void main() {
     await ProfileRepository(store).save(p);
     expect(ProfileRepository(store).value.fullName, 'Mario Rossi');
   });
+
+  test('più profili: migrazione, attivo, aggiungi, rinomina, elimina', () async {
+    final store = MemoryKeyValueStore();
+    // Vecchio formato con un solo profilo.
+    await store.put('profile', p.toMap());
+    final r = ProfileRepository(store);
+    expect(r.profiles.single.label, 'Io');
+    expect(r.value.fullName, 'Mario Rossi');
+    final mamma = await r.addProfile('Mamma');
+    expect(r.activeId, mamma.id);
+    expect(r.value.isEmpty, isTrue);
+    await r.save(const Profile(values: {ProfileField.firstName: 'Lucia'}));
+    await r.renameProfile(mamma.id, 'Mamma Lucia');
+    final reloaded = ProfileRepository(store);
+    expect(reloaded.profiles.map((x) => x.label), ['Io', 'Mamma Lucia']);
+    expect(reloaded.value[ProfileField.firstName], 'Lucia', reason: 'resta attivo dopo il riavvio');
+    expect(store.get('profile'), isNull, reason: 'vecchia chiave rimossa');
+    expect(await reloaded.removeProfile(mamma.id), isTrue);
+    expect(await reloaded.removeProfile(reloaded.activeId), isFalse, reason: 'l\'ultimo non si elimina');
+    expect(reloaded.value.fullName, 'Mario Rossi');
+  });
 }

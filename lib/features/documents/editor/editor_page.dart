@@ -12,6 +12,7 @@ import '../../../services/field_detection/anthropic_detector.dart';
 import '../../../services/field_detection/device_detector.dart';
 import '../../../services/field_detection/field_detector.dart';
 import '../../../services/pdf_service.dart';
+import '../../profile/profile_model.dart';
 import '../../settings/signature_lock.dart';
 import '../../signatures/new_signature_sheet.dart';
 import '../../signatures/signature_model.dart';
@@ -520,9 +521,39 @@ class EditorPageState extends State<EditorPage> {
         onAutofill: autofillAcroForm,
       );
 
+  /// Chiede quale profilo usare quando ce n'è più di uno. Null se annullato.
+  Future<Profile?> _pickProfile() async {
+    final repo = AppScope.of(context).profile;
+    if (repo.profiles.length == 1) return repo.value;
+    final id = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(bottom: 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('Con quale profilo?', style: Theme.of(context).textTheme.titleLarge),
+            ),
+            for (final p in repo.profiles)
+              ListTile(
+                leading: Icon(p.id == repo.activeId ? Icons.person : Icons.person_outline),
+                title: Text(p.label),
+                subtitle: p.profile.fullName.isEmpty ? null : Text(p.profile.fullName),
+                onTap: () => Navigator.pop(context, p.id),
+              ),
+          ],
+        ),
+      ),
+    );
+    return id == null ? null : repo.byId(id)?.profile;
+  }
+
   /// Compila i campi AcroForm vuoti con i dati del profilo (abbinati per nome del campo).
-  void autofillAcroForm() {
-    final profile = AppScope.of(context).profile.value;
+  Future<void> autofillAcroForm() async {
+    final profile = await _pickProfile();
+    if (profile == null || !mounted) return;
     if (profile.isEmpty) {
       _snack('Compila prima il tuo profilo');
       return;
@@ -534,7 +565,8 @@ class EditorPageState extends State<EditorPage> {
 
   /// Inserisce un dato del profilo come testo sulla pagina.
   Future<void> insertProfileData() async {
-    final profile = AppScope.of(context).profile.value;
+    final profile = await _pickProfile();
+    if (profile == null || !mounted) return;
     final entries = profile.filledEntries;
     if (entries.isEmpty) {
       _snack('Il profilo è vuoto: aggiungi i tuoi dati nella sezione Profilo');
@@ -658,6 +690,9 @@ class EditorPageState extends State<EditorPage> {
       builder: (_) => AutofillPreviewPage(
         proposals: proposals,
         hasSignature: signature != null,
+        profiles: services.profile.profiles,
+        initialProfileId: services.profile.activeId,
+        today: todayText(),
         note: profile.isEmpty ? 'Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.' : null,
       ),
     ));

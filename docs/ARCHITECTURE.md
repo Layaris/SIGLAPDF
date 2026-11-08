@@ -97,16 +97,25 @@ File JSON in UTF-8 (l'envelope è in chiaro, il contenuto è cifrato):
 - Chiave: 256 bit derivati dalla password con PBKDF2-HMAC-SHA256, salt casuale di 16 byte.
 - Cifratura: AES-256-GCM, nonce casuale di 12 byte, tag di 16 byte. L'header (format, version,
   kdf, cipher name) è usato come dato autenticato aggiuntivo (AAD) per evitare manomissioni.
-- Contenuto in chiaro (dopo la decifratura), JSON:
+- Contenuto in chiaro (dopo la decifratura), JSON (schema 3):
 
 ```json
 {
-  "schema": 2,
+  "schema": 3,
   "signatures": [
     { "id": "…", "name": "Firma", "kind": "signature|initials", "source": "drawn|image|typed",
       "png": "<base64>", "isDefault": true, "createdAt": "…" }
   ],
-  "profile": { "firstName": "…", "…": "…", "custom": [ { "key": "…", "value": "…" } ] },
+  "profiles": [
+    { "id": "…", "label": "Io", "data": { "firstName": "…", "gender": "M|F", "…": "…",
+      "custom": [ { "key": "…", "value": "…" } ] } }
+  ],
+  "activeProfile": "…",
+  "templates": [
+    { "id": "…", "name": "…", "pageCount": 2, "fingerprint": "p2-…", "createdAt": "…",
+      "elements": [ { "type": "signature|date|text|ink|…", "page": 0,
+                      "rect": { "x": 0.1, "y": 0.8, "w": 0.3, "h": 0.06 }, "text": "…", "color": 4280149951 } ] }
+  ],
   "settings": { "themeMode": "system", "inkColor": "blue", "…": "…" }
 }
 ```
@@ -117,7 +126,11 @@ File JSON in UTF-8 (l'envelope è in chiaro, il contenuto è cifrato):
   - Schema 1 (formato preliminare): firme con campo `type` (`draw|image|text`) e senza `kind`;
     profilo con i campi personalizzati come mappa `extra`. La migrazione a 2 converte
     `type` in `source`, imposta `kind: signature` e trasforma `extra` in lista `custom`.
-- **Import**: "Unisci" aggiunge le firme mancanti (per id) e completa il profilo solo nei campi
-  vuoti; "Sostituisci" cancella i dati locali e usa quelli del backup.
+  - Schema 2: un solo `profile`. La migrazione a 3 lo mette in `profiles` con id `principale`
+    e nome "Io", imposta `activeProfile` e aggiunge `templates` vuoto.
+- I documenti recenti **non** sono nel backup (possono essere grandi e personali).
+- **Import**: "Unisci" aggiunge le firme e i modelli mancanti (per id); per i profili, stesso id o
+  stesso nome → completa solo i campi vuoti, altrimenti aggiunge il profilo. "Sostituisci" cancella
+  i dati locali e usa quelli del backup (la chiave API resta).
 - Password sbagliata o file alterato → errore di autenticazione GCM → messaggio
   "Password errata o file danneggiato".

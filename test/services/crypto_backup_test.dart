@@ -14,7 +14,16 @@ import '../test_helpers.dart';
 final _crypto = CryptoBackup(iterations: 2000);
 
 void main() {
-  const payload = {'schema': 2, 'signatures': <Object>[], 'profile': {'firstName': 'Mario'}, 'settings': {'inkColor': 'black'}};
+  const payload = {
+    'schema': 3,
+    'signatures': <Object>[],
+    'profiles': [
+      {'id': 'a', 'label': 'Io', 'data': {'firstName': 'Mario'}},
+    ],
+    'activeProfile': 'a',
+    'templates': <Object>[],
+    'settings': {'inkColor': 'black'},
+  };
 
   test('cifra e decifra con la password giusta', () async {
     final file = await _crypto.encrypt(payload, 'password-lunga');
@@ -26,7 +35,7 @@ void main() {
     expect(base64Decode(env['cipher']['nonce'] as String), hasLength(12));
     expect(utf8.decode(file), isNot(contains('Mario')), reason: 'contenuto cifrato');
     final back = await CryptoBackup.decrypt(file, 'password-lunga');
-    expect(back['profile'], {'firstName': 'Mario'});
+    expect((back['profiles'] as List).single['data'], {'firstName': 'Mario'});
   });
 
   test('password sbagliata → errore chiaro', () async {
@@ -48,7 +57,7 @@ void main() {
     final env = jsonDecode(utf8.decode(file)) as Map<String, dynamic>;
     // createdAt è informativo; format, version, kdf e cipher sono nell'AAD.
     final tampered = {...env, 'createdAt': '2000-01-01T00:00:00.000Z'};
-    expect((await CryptoBackup.decrypt(Uint8List.fromList(utf8.encode(jsonEncode(tampered))), 'password-lunga'))['schema'], 2,
+    expect((await CryptoBackup.decrypt(Uint8List.fromList(utf8.encode(jsonEncode(tampered))), 'password-lunga'))['schema'], 3,
         reason: 'createdAt non è autenticato: è solo informativo');
     final ct = base64Decode(env['ciphertext'] as String)..[0] ^= 0xFF;
     final broken = {...env, 'ciphertext': base64Encode(ct)};
@@ -82,17 +91,32 @@ void main() {
         'extra': {'Patente': 'U1'},
       },
     };
-    final v2 = BackupMigrations.migrate(v1);
-    expect(v2['schema'], 2);
-    final sigs = (v2['signatures'] as List).cast<Map<String, dynamic>>();
+    final v3 = BackupMigrations.migrate(v1);
+    expect(v3['schema'], 3);
+    final sigs = (v3['signatures'] as List).cast<Map<String, dynamic>>();
     expect(sigs[0]['source'], 'drawn');
     expect(sigs[1]['source'], 'typed');
     expect(sigs[0]['kind'], 'signature');
     expect(sigs[0].containsKey('type'), isFalse);
-    final profile = Profile.fromMap((v2['profile'] as Map).cast<String, dynamic>());
-    expect(profile.custom.single, const CustomField('Patente', 'U1'));
-    expect(profile[ProfileField.firstName], 'Mario');
-    expect(() => BackupMigrations.migrate({'schema': 3}), throwsA(isA<BackupException>()));
+    final named = NamedProfile.fromMap(((v3['profiles'] as List).single as Map).cast<String, dynamic>())!;
+    expect(named.label, 'Io');
+    expect(named.profile.custom.single, const CustomField('Patente', 'U1'));
+    expect(named.profile[ProfileField.firstName], 'Mario');
+    expect(() => BackupMigrations.migrate({'schema': 4}), throwsA(isA<BackupException>()));
+  });
+
+  test('migrazione dallo schema 2: profilo singolo → lista di profili', () {
+    final v3 = BackupMigrations.migrate({
+      'schema': 2,
+      'signatures': <Object>[],
+      'profile': {'firstName': 'Anna'},
+      'settings': <String, Object>{},
+    });
+    expect(v3['schema'], 3);
+    expect(v3.containsKey('profile'), isFalse);
+    expect(v3['activeProfile'], 'principale');
+    expect((v3['profiles'] as List).single['data'], {'firstName': 'Anna'});
+    expect(v3['templates'], isEmpty);
   });
 
   test('backup completo dell\'app: esporta, importa con unisci e sostituisci', () async {
@@ -104,16 +128,24 @@ void main() {
     expect(service.buildPayload().toString(), isNot(contains('sk-segreta')), reason: 'la chiave API non va nel backup');
     final file = await service.export('password-lunga');
 
+    await source.profile.addProfile('Mamma');
+    await source.profile.save(const Profile(values: {ProfileField.firstName: 'Lucia'}));
+    await source.profile.setActive(source.profile.profiles.first.id);
+    await source.templates.save(name: 'Modulo', elements: const [], pageCount: 1, fingerprint: 'fp');
+    final file2 = await service.export('password-lunga');
+
     final target = AppServices.inMemory();
     await target.profile.save(const Profile(values: {ProfileField.firstName: 'Anna'}));
-    final merged = await BackupService(target, crypto: _crypto).import(file, 'password-lunga', replace: false);
+    final merged = await BackupService(target, crypto: _crypto).import(file2, 'password-lunga', replace: false);
     expect(merged.signatures, 1);
-    expect(target.profile.value[ProfileField.firstName], 'Anna', reason: 'unisci non sovrascrive');
+    expect(merged.templates, 1);
+    expect(target.profile.value[ProfileField.firstName], 'Anna', reason: 'unisci non sovrascrive (stesso nome "Io")');
     expect(target.profile.value[ProfileField.city], 'Roma');
+    expect(target.profile.profiles.map((p) => p.label), ['Io', 'Mamma']);
     expect(target.settings.value.inkColor, 'blue', reason: 'unisci non tocca le impostazioni');
 
     await target.settings.update((s) => s.copyWith(aiApiKey: 'sk-locale'));
-    final replaced = await BackupService(target, crypto: _crypto).import(file, 'password-lunga', replace: true);
+    final replaced = await BackupService(target, crypto: _crypto).import(file2, 'password-lunga', replace: true);
     expect(replaced.settings, isTrue);
     expect(target.profile.value[ProfileField.firstName], 'Mario');
     expect(target.settings.value.inkColor, 'black');

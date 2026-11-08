@@ -25,6 +25,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Timer? _debounce;
   bool _initialized = false;
   bool _savedHint = false;
+  String? _loadedId;
 
   @override
   void didChangeDependencies() {
@@ -32,17 +33,147 @@ class _ProfilePageState extends State<ProfilePage> {
     if (_initialized) return;
     _initialized = true;
     _repo = AppScope.of(context).profile;
-    final p = _repo.value;
     for (final f in ProfileField.values) {
-      _fields[f] = TextEditingController(text: p[f]);
+      _fields[f] = TextEditingController();
     }
-    for (final c in p.custom) {
-      _custom.add((TextEditingController(text: c.key), TextEditingController(text: c.value)));
+    _load();
+    _repo.addListener(_onRepo);
+  }
+
+  /// Il profilo attivo può cambiare da fuori (es. import di un backup).
+  void _onRepo() {
+    if (mounted && _repo.activeId != _loadedId) setState(_load);
+  }
+
+  /// Carica nei campi il profilo attivo.
+  void _load() {
+    final p = _repo.value;
+    _loadedId = _repo.activeId;
+    for (final f in ProfileField.values) {
+      _fields[f]!.text = p[f];
     }
+    for (final (k, v) in _custom) {
+      k.dispose();
+      v.dispose();
+    }
+    _custom
+      ..clear()
+      ..addAll([for (final c in p.custom) (TextEditingController(text: c.key), TextEditingController(text: c.value))]);
+  }
+
+  Future<void> _switchTo(String id) async {
+    _debounce?.cancel();
+    await _repo.save(_collect());
+    await _repo.setActive(id);
+    setState(_load);
+  }
+
+  Future<void> _addProfile() async {
+    final name = await _askName(title: 'Nuovo profilo', initial: '');
+    if (name == null) return;
+    _debounce?.cancel();
+    await _repo.save(_collect());
+    await _repo.addProfile(name);
+    setState(_load);
+  }
+
+  Future<String?> _askName({required String title, required String initial}) async {
+    final ctrl = TextEditingController(text: initial);
+    final r = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: const InputDecoration(labelText: 'Nome', hintText: 'Es. Mamma, Ufficio'),
+          onSubmitted: (v) => Navigator.pop(context, v.trim().isEmpty ? null : v.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, ctrl.text.trim().isEmpty ? null : ctrl.text.trim()),
+            child: const Text('Salva'),
+          ),
+        ],
+      ),
+    );
+    // Il controller non si libera qui: il dialogo sta ancora chiudendosi con l'animazione.
+    return r;
+  }
+
+  Future<void> _profileAction(String a) async {
+    final current = _repo.active;
+    if (a == 'rename') {
+      final n = await _askName(title: 'Rinomina profilo', initial: current.label);
+      if (n != null) await _repo.renameProfile(current.id, n);
+      setState(() {});
+    } else if (a == 'delete') {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Eliminare "${current.label}"?'),
+          content: const Text('I dati di questo profilo verranno cancellati.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Elimina')),
+          ],
+        ),
+      );
+      if (ok == true && await _repo.removeProfile(current.id)) setState(_load);
+    }
+  }
+
+  Widget _profileChips() {
+    final profiles = _repo.profiles;
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (final p in profiles)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(p.label),
+                selected: p.id == _repo.activeId,
+                onSelected: (_) => _switchTo(p.id),
+              ),
+            ),
+          ActionChip(avatar: const Icon(Icons.add, size: 18), label: const Text('Profilo'), onPressed: _addProfile),
+        ],
+      ),
+    );
+  }
+
+  Widget _genderField() {
+    final g = _fields[ProfileField.gender]!.text;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Text('Sesso', style: TextStyle(color: AppColors.of(context).secondary)),
+          const SizedBox(width: 16),
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'M', label: Text('M')),
+              ButtonSegment(value: 'F', label: Text('F')),
+              ButtonSegment(value: '', label: Text('—')),
+            ],
+            selected: {g == 'M' || g == 'F' ? g : ''},
+            showSelectedIcon: false,
+            onSelectionChanged: (v) {
+              setState(() => _fields[ProfileField.gender]!.text = v.first);
+              _changed();
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _repo.removeListener(_onRepo);
     _debounce?.cancel();
     _saveNow();
     for (final c in _fields.values) {
@@ -166,7 +297,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name.isEmpty ? 'Il tuo profilo' : name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(name.isEmpty ? _repo.active.label : name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text(
                     filled == total ? 'Profilo completo' : '$filled di $total dati compilati',
@@ -200,6 +331,14 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         title: const Text('Profilo'),
         actions: [
+          PopupMenuButton<String>(
+            tooltip: 'Opzioni del profilo',
+            onSelected: _profileAction,
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'rename', child: Text('Rinomina profilo')),
+              if (_repo.profiles.length > 1) const PopupMenuItem(value: 'delete', child: Text('Elimina profilo')),
+            ],
+          ),
           if (_savedHint)
             Padding(
               padding: const EdgeInsets.only(right: 16),
@@ -216,6 +355,8 @@ class _ProfilePageState extends State<ProfilePage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
           children: [
+            _profileChips(),
+            const SizedBox(height: 12),
             ListenableBuilder(
               listenable: Listenable.merge(_fields.values.toList()),
               builder: (context, _) => _header(context),
@@ -236,6 +377,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               _field(ProfileField.birthPlace),
             ]),
+            _genderField(),
             _field(ProfileField.taxCode, upper: true, maxLength: 16),
             if (cfWarning)
               Padding(

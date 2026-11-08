@@ -22,7 +22,7 @@ class CryptoBackup {
 
   static const format = 'sigla-backup';
   static const envelopeVersion = 2;
-  static const currentSchema = 2;
+  static const currentSchema = 3;
   static const defaultIterations = 310000;
   static const minPasswordLength = 8;
 
@@ -119,11 +119,25 @@ class BackupMigrations {
     while (schema < CryptoBackup.currentSchema) {
       p = switch (schema) {
         1 => _v1toV2(p),
+        2 => _v2toV3(p),
         _ => throw const BackupException('Versione del backup non supportata.'),
       };
       schema = p['schema'] as int;
     }
     return p;
+  }
+
+  /// Schema 2 → 3: il profilo singolo diventa una lista di profili con nome; arrivano i modelli.
+  static Map<String, dynamic> _v2toV3(Map<String, dynamic> p) {
+    final profile = p['profile'];
+    final out = Map<String, dynamic>.of(p)..remove('profile');
+    out['profiles'] = [
+      if (profile is Map) {'id': 'principale', 'label': 'Io', 'data': profile},
+    ];
+    out['activeProfile'] = 'principale';
+    out['templates'] = out['templates'] ?? <Object>[];
+    out['schema'] = 3;
+    return out;
   }
 
   /// Schema 1 (formato preliminare): firme con `type` draw|image|text e senza `kind`;

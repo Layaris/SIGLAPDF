@@ -3,12 +3,21 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/page_frame.dart';
 import '../../../services/field_detection/field_kind.dart';
+import '../../profile/profile_model.dart';
 import 'autofill.dart';
 
 /// Anteprima dei campi trovati: niente viene inserito senza conferma.
 /// Restituisce le proposte confermate, oppure null se l'utente annulla.
 class AutofillPreviewPage extends StatefulWidget {
-  const AutofillPreviewPage({super.key, required this.proposals, required this.hasSignature, this.note});
+  const AutofillPreviewPage({
+    super.key,
+    required this.proposals,
+    required this.hasSignature,
+    this.note,
+    this.profiles = const [],
+    this.initialProfileId,
+    this.today = '',
+  });
 
   final List<FillProposal> proposals;
   final bool hasSignature;
@@ -16,12 +25,35 @@ class AutofillPreviewPage extends StatefulWidget {
   /// Messaggio informativo in testa (es. motore usato).
   final String? note;
 
+  /// Profili tra cui scegliere (se più di uno compare il selettore).
+  final List<NamedProfile> profiles;
+  final String? initialProfileId;
+  final String today;
+
   @override
   State<AutofillPreviewPage> createState() => _AutofillPreviewPageState();
 }
 
 class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
   late final _ctrls = [for (final p in widget.proposals) TextEditingController(text: p.value)];
+  late String? _profileId = widget.initialProfileId;
+
+  /// Ricalcola i valori proposti con un altro profilo.
+  void _useProfile(String id) {
+    final np = widget.profiles.where((p) => p.id == id).firstOrNull;
+    if (np == null) return;
+    setState(() {
+      _profileId = id;
+      for (var i = 0; i < widget.proposals.length; i++) {
+        final pr = widget.proposals[i];
+        if (pr.isSignature || pr.isChoice) continue;
+        final v = pr.field.kind.proposedValue(np.profile, today: widget.today);
+        pr.value = v;
+        pr.include = v.isNotEmpty;
+        _ctrls[i].text = v;
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -57,6 +89,24 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
               'Controlla i valori proposti. Togli la spunta ai campi che non vuoi compilare.',
               style: TextStyle(color: c.secondary),
             ),
+            if (widget.profiles.length > 1) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Text('Compila con'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _profileId,
+                      isDense: true,
+                      decoration: const InputDecoration(isDense: true),
+                      items: [for (final p in widget.profiles) DropdownMenuItem(value: p.id, child: Text(p.label))],
+                      onChanged: (v) => v == null ? null : _useProfile(v),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (widget.note != null) ...[
               const SizedBox(height: 6),
               Text(widget.note!, style: TextStyle(color: c.secondary, fontSize: 13)),
@@ -106,7 +156,22 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
                       style: TextStyle(color: c.secondary, fontSize: 13),
                     ),
                     const SizedBox(height: 8),
-                    if (p.isSignature)
+                    if (p.isChoice)
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final o in [...f.options.map((o) => o.label), ''])
+                            ChoiceChip(
+                              label: Text(o.isEmpty ? 'Nessuna' : o),
+                              selected: p.value == o,
+                              onSelected: (_) => setState(() {
+                                p.value = o;
+                                p.include = o.isNotEmpty;
+                              }),
+                            ),
+                        ],
+                      )
+                    else if (p.isSignature)
                       Text(
                         widget.hasSignature ? 'Verrà inserita la firma predefinita.' : 'Nessuna firma salvata: crea una firma per inserirla.',
                         style: TextStyle(color: widget.hasSignature ? c.ink : c.danger),
