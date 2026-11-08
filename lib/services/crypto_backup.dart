@@ -6,6 +6,10 @@ import 'package:cryptography/cryptography.dart';
 import '../core/l10n/l10n.dart';
 
 /// Errore del backup con messaggio per l'utente.
+/// Limite alle iterazioni lette da un file: un valore enorme bloccherebbe l'app prima del controllo
+/// della password (oggi se ne usano 310 000).
+const maxIterations = 2000000;
+
 class BackupException implements Exception {
   const BackupException(this.message);
   final String message;
@@ -86,7 +90,7 @@ class CryptoBackup {
         throw BackupException(tr('Formato di cifratura non supportato.'));
       }
       final iterations = kdf['iterations'] as int;
-      if (iterations < 1000 || iterations > 10000000) throw BackupException(tr('Parametri del backup non validi.'));
+      if (iterations < 1000 || iterations > maxIterations) throw BackupException(tr('Parametri del backup non validi.'));
       final saltB64 = kdf['salt'] as String;
       final key = await _deriveKey(password, base64Decode(saltB64), iterations);
       final box = SecretBox(

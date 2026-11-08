@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_services.dart';
 import '../../core/l10n/l10n.dart';
 import '../../services/crypto_backup.dart';
+import '../settings/signature_lock.dart';
 import 'backup_service.dart';
 
 /// Chiede una password (con conferma per l'esportazione).
@@ -118,6 +119,8 @@ Future<void> _withProgress(BuildContext context, String text, Future<void> Funct
 Future<void> exportBackupFlow(BuildContext context) async {
   final services = AppScope.of(context);
   final messenger = ScaffoldMessenger.of(context);
+  // Il backup contiene le firme: se sono bloccate serve l'impronta o il PIN.
+  if (!await ensureSignaturesUnlocked(context) || !context.mounted) return;
   final password = await askBackupPassword(context, confirm: true);
   if (password == null || !context.mounted) return;
   final service = BackupService(services);
@@ -155,6 +158,8 @@ Future<void> importBackupFlow(BuildContext context) async {
     ),
   );
   if (replace == null || !context.mounted) return;
+  // "Sostituisci" cancella le firme di questo dispositivo: se sono bloccate serve l'autenticazione.
+  if (replace && (!await ensureSignaturesUnlocked(context) || !context.mounted)) return;
   final password = await askBackupPassword(context, confirm: false);
   if (password == null || !context.mounted) return;
   try {

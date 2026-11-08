@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../../core/app_services.dart';
+import '../../core/l10n/l10n.dart';
 import '../../services/crypto_backup.dart';
 import '../documents/templates/templates_repository.dart';
 import '../profile/profile_model.dart';
@@ -44,26 +45,32 @@ class BackupService {
   /// Decifra e importa. [replace] = sostituisci, altrimenti unisci.
   Future<ImportSummary> import(Uint8List bytes, String password, {required bool replace}) async {
     final payload = await CryptoBackup.decrypt(bytes, password);
-    final sigs = <Signature>[];
-    for (final raw in (payload['signatures'] as List? ?? const [])) {
-      if (raw is! Map) continue;
-      try {
-        sigs.add(Signature.fromMap(raw.cast<String, dynamic>()));
-      } catch (_) {
-        // Firma non valida: saltata.
+    // Prima si legge e si controlla tutto; solo dopo si toccano i dati del dispositivo, così un file
+    // con una voce rovinata non lascia un import a metà (con "Sostituisci" le firme locali sparirebbero).
+    List<T> parse<T extends Object>(Object? list, T? Function(Map<String, dynamic>) from) {
+      final out = <T>[];
+      for (final raw in (list is List ? list : const [])) {
+        if (raw is! Map) continue;
+        try {
+          final v = from(raw.cast<String, dynamic>());
+          if (v != null) out.add(v);
+        } catch (_) {
+          // Voce non valida: saltata.
+        }
       }
+      return out;
+    }
+
+    final sigs = parse(payload['signatures'], Signature.fromMap);
+    final profiles = parse(payload['profiles'], NamedProfile.fromMap);
+    final templates = parse(payload['templates'], FormTemplate.fromMap);
+    final active = payload['activeProfile'];
+    if (replace && sigs.isEmpty && profiles.isEmpty && templates.isEmpty) {
+      throw BackupException(tr('Il backup non contiene dati: non ho cambiato niente.'));
     }
     final added = await services.signatures.importAll(sigs, replace: replace);
-    final profiles = [
-      for (final raw in (payload['profiles'] as List? ?? const []))
-        if (raw is Map) NamedProfile.fromMap(raw.cast<String, dynamic>()),
-    ].whereType<NamedProfile>().toList();
-    await services.profile.importProfiles(profiles, replace: replace, activeId: payload['activeProfile'] as String?);
+    await services.profile.importProfiles(profiles, replace: replace, activeId: active is String ? active : null);
     final profileDone = profiles.isNotEmpty;
-    final templates = [
-      for (final raw in (payload['templates'] as List? ?? const []))
-        if (raw is Map) FormTemplate.fromMap(raw.cast<String, dynamic>()),
-    ].whereType<FormTemplate>().toList();
     final templatesAdded = await services.templates.importAll(templates, replace: replace);
     final settingsMap = payload['settings'];
     var settingsDone = false;

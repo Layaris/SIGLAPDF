@@ -153,4 +153,41 @@ void main() {
     expect(target.signatures.all, hasLength(1));
     expect(BackupService(target).fileName(DateTime(2026, 3, 4)), 'sigla-backup-20260304.sigla');
   });
+
+  test('sostituisci: voci rovinate saltate, file vuoto rifiutato, blocco firme del dispositivo mantenuto', () async {
+    final target = AppServices.inMemory();
+    await target.signatures.add(name: 'Mia', kind: SignatureKind.signature, source: SignatureSource.drawn, png: tinyPng(), width: 4, height: 2);
+    await target.settings.update((s) => s.copyWith(biometricLock: true));
+    // Backup senza dati utili: niente viene cancellato.
+    final empty = await _crypto.encrypt({'schema': 3, 'signatures': <Object>[], 'profiles': <Object>[], 'templates': <Object>[]}, 'password-lunga');
+    await expectLater(BackupService(target, crypto: _crypto).import(empty, 'password-lunga', replace: true), throwsA(isA<BackupException>()));
+    expect(target.signatures.all, hasLength(1), reason: 'le firme locali restano');
+    // Profilo e modello con tipi sbagliati, activeProfile non stringa: si salta la voce, non si interrompe a metà.
+    final messy = await _crypto.encrypt({
+      'schema': 3,
+      'signatures': <Object>[],
+      'profiles': [
+        {'id': 'a', 'label': 42, 'data': 'x'},
+        {'id': 'b', 'label': 'Io', 'data': {'firstName': 'Mario'}},
+      ],
+      'activeProfile': 7,
+      'templates': [
+        {'id': 't', 'name': 1, 'createdAt': 5},
+      ],
+      'settings': {'inkColor': 'black', 'biometricLock': false},
+    }, 'password-lunga');
+    final r = await BackupService(target, crypto: _crypto).import(messy, 'password-lunga', replace: true);
+    expect(r.profile, isTrue);
+    expect(target.profile.value[ProfileField.firstName], 'Mario');
+    expect(target.settings.value.inkColor, 'black');
+    expect(target.settings.value.biometricLock, isTrue, reason: 'il blocco dipende da questo dispositivo');
+  });
+
+  test('iterazioni enormi nel file rifiutate prima di calcolare la chiave', () async {
+    final file = await _crypto.encrypt(payload, 'password-lunga');
+    final env = (jsonDecode(utf8.decode(file)) as Map).cast<String, dynamic>();
+    (env['kdf'] as Map)['iterations'] = maxIterations + 1;
+    final bad = Uint8List.fromList(utf8.encode(jsonEncode(env)));
+    await expectLater(CryptoBackup.decrypt(bad, 'password-lunga'), throwsA(isA<BackupException>()));
+  });
 }

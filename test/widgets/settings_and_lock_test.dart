@@ -46,6 +46,10 @@ void main() {
     // Senza biometria disponibile non si attiva.
     final s2 = AppServices.inMemory(auth: FakeAuth(available: false));
     expect(await s2.lock.setEnabled(true), isFalse);
+    // Se il dispositivo perde impronta/PIN, il blocco si può comunque spegnere.
+    auth.available = false;
+    expect(await lock.setEnabled(false), isTrue);
+    expect(s.settings.value.biometricLock, isFalse);
     // Sul web è sempre disattivato.
     final web = AppServices.inMemory(isWeb: true);
     await web.settings.update((x) => x.copyWith(biometricLock: true));

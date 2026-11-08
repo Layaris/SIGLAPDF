@@ -95,8 +95,10 @@ class SignatureLock extends ChangeNotifier {
   /// Attiva o disattiva il blocco: in entrambi i casi chiede l'autenticazione.
   Future<bool> setEnabled(bool value) async {
     if (isWeb) return false;
-    if (value && !await _auth.isAvailable()) return false;
-    final ok = await _auth.authenticate(value ? tr('Attiva il blocco delle firme') : tr('Disattiva il blocco delle firme'));
+    final available = await _auth.isAvailable();
+    if (value && !available) return false;
+    // Se il dispositivo non ha più impronta/PIN il blocco non si potrebbe mai togliere: si spegne e basta.
+    final ok = !available || await _auth.authenticate(value ? tr('Attiva il blocco delle firme') : tr('Disattiva il blocco delle firme'));
     if (!ok) return false;
     await _settings.update((s) => s.copyWith(biometricLock: value));
     _unlocked = true;
