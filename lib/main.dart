@@ -6,6 +6,7 @@ import 'app.dart';
 import 'core/app_services.dart';
 import 'core/storage/key_value_store.dart';
 import 'features/documents/editor/editor_page.dart';
+import 'features/documents/recents/recents_repository.dart';
 import 'features/profile/profile_repository.dart';
 import 'features/settings/settings_repository.dart';
 import 'features/settings/signature_lock.dart';
@@ -20,12 +21,14 @@ Future<void> main() async {
   final settingsStore = await HiveKeyValueStore.open('settings');
   final signatureStore = await HiveKeyValueStore.open('signatures');
   final profileStore = await HiveKeyValueStore.open('profile');
+  final recentsStore = await HiveKeyValueStore.open('recents');
   final settings = SettingsRepository(settingsStore);
   final services = AppServices(
     settings: settings,
     lock: SignatureLock(settings, DeviceAuthenticator()),
     signatures: SignatureRepository(signatureStore),
     profile: ProfileRepository(profileStore),
+    recents: RecentsRepository(recentsStore),
     ocr: createDeviceOcr(),
   );
   final navigatorKey = GlobalKey<NavigatorState>();

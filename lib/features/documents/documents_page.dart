@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/app_services.dart';
 import '../../core/theme/app_colors.dart';
@@ -8,6 +10,7 @@ import '../../core/widgets/page_frame.dart';
 import '../../services/document_sources.dart';
 import '../../services/images_to_pdf.dart';
 import 'editor/editor_page.dart';
+import 'recents/recents_repository.dart';
 
 /// Punto di partenza: apri un PDF da firmare o compilare.
 class DocumentsPage extends StatefulWidget {
@@ -81,6 +84,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
               onTap: _openPdf,
             ),
             ...extraActions(context),
+            _RecentsSection(onOpen: (d) => openPdfEditor(context, name: d.name, bytes: d.pdf)),
             const SizedBox(height: 20),
             Text('Come funziona', style: t.titleMedium),
             const SizedBox(height: 12),
@@ -250,6 +254,103 @@ class _Steps extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Ultimi PDF esportati: tocca per riaprire, menu per condividere, salvare, eliminare.
+class _RecentsSection extends StatelessWidget {
+  const _RecentsSection({required this.onOpen});
+  final void Function(RecentDocument d) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context);
+    final repo = services.recents;
+    return ListenableBuilder(
+      listenable: Listenable.merge([repo, services.settings]),
+      builder: (context, _) {
+        if (repo.isEmpty || !services.settings.value.keepRecents) return const SizedBox.shrink();
+        final c = AppColors.of(context);
+        final t = Theme.of(context).textTheme;
+        final fmt = DateFormat('d MMM yyyy, HH:mm', 'it_IT');
+        return Padding(
+          padding: const EdgeInsets.only(top: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(child: Semantics(header: true, child: Text('Recenti', style: t.titleMedium))),
+                  TextButton(
+                    onPressed: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Cancellare i recenti?'),
+                          content: const Text('I PDF esportati vengono tolti da questo elenco. I file salvati altrove restano.'),
+                          actions: [
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+                            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancella')),
+                          ],
+                        ),
+                      );
+                      if (ok == true) await repo.clear();
+                    },
+                    child: const Text('Cancella'),
+                  ),
+                ],
+              ),
+              Card(
+                child: Column(
+                  children: [
+                    for (final (i, d) in repo.all.indexed) ...[
+                      if (i > 0) Divider(height: 1, indent: 76, color: c.line),
+                      ListTile(
+                        onTap: () => onOpen(d),
+                        leading: Container(
+                          width: 44,
+                          height: 58,
+                          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: c.line)),
+                          child: d.thumbnail == null
+                              ? Icon(Icons.picture_as_pdf_outlined, color: c.secondary)
+                              : Image.memory(d.thumbnail!, fit: BoxFit.cover, gaplessPlayback: true),
+                        ),
+                        title: Text(d.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(
+                          '${fmt.format(d.savedAt)} · ${d.pageCount} ${d.pageCount == 1 ? 'pagina' : 'pagine'}',
+                          style: TextStyle(color: c.secondary, fontSize: 13),
+                        ),
+                        trailing: PopupMenuButton<String>(
+                          tooltip: 'Opzioni',
+                          onSelected: (a) async {
+                            switch (a) {
+                              case 'open':
+                                onOpen(d);
+                              case 'share':
+                                await Printing.sharePdf(bytes: d.pdf, filename: d.name);
+                              case 'save':
+                                await services.files.save(fileName: d.name, bytes: d.pdf, mimeType: 'application/pdf');
+                              case 'delete':
+                                await repo.remove(d.id);
+                            }
+                          },
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(value: 'open', child: Text('Apri')),
+                            PopupMenuItem(value: 'share', child: Text('Condividi')),
+                            PopupMenuItem(value: 'save', child: Text('Salva')),
+                            PopupMenuItem(value: 'delete', child: Text('Togli dai recenti')),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

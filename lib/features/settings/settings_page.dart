@@ -30,7 +30,8 @@ class SettingsPage extends StatelessWidget {
               _SecuritySection(),
               // ignore: prefer_const_constructors
               _AiSection(),
-              const _BackupSection(),
+              // ignore: prefer_const_constructors
+              _BackupSection(),
               const _InfoSection(),
             ],
           ),
@@ -240,7 +241,18 @@ class _BackupSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
-    return _Section(title: 'Backup', children: [
+    final services = AppScope.of(context);
+    return _Section(title: 'Documenti e backup', children: [
+      SwitchListTile(
+        title: const Text('Ricorda i PDF esportati'),
+        subtitle: Text('Elenco "Recenti" in Documenti, solo su questo dispositivo. Non va nel backup.', style: TextStyle(color: c.secondary)),
+        value: services.settings.value.keepRecents,
+        onChanged: (v) async {
+          await services.settings.update((x) => x.copyWith(keepRecents: v));
+          if (!v) await services.recents.clear();
+        },
+      ),
+      const Divider(height: 1),
       ListTile(
         leading: const Icon(Icons.upload_file_outlined),
         title: const Text('Esporta backup'),

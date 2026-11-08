@@ -11,6 +11,7 @@ class AppSettings {
     this.aiEnabled = false,
     this.aiApiKey = '',
     this.aiModel = defaultAiModel,
+    this.keepRecents = true,
   });
 
   static const defaultAiModel = 'claude-haiku-5-5';
@@ -23,6 +24,9 @@ class AppSettings {
   final String aiApiKey;
   final String aiModel;
 
+  /// Ricorda gli ultimi PDF esportati (solo sul dispositivo).
+  final bool keepRecents;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? inkColor,
@@ -31,6 +35,7 @@ class AppSettings {
     bool? aiEnabled,
     String? aiApiKey,
     String? aiModel,
+    bool? keepRecents,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -40,6 +45,7 @@ class AppSettings {
         aiEnabled: aiEnabled ?? this.aiEnabled,
         aiApiKey: aiApiKey ?? this.aiApiKey,
         aiModel: aiModel ?? this.aiModel,
+        keepRecents: keepRecents ?? this.keepRecents,
       );
 
   /// Mappa completa (archivio locale).
@@ -56,6 +62,7 @@ class AppSettings {
         'biometricLock': biometricLock,
         'aiEnabled': aiEnabled,
         'aiModel': aiModel,
+        'keepRecents': keepRecents,
       };
 
   factory AppSettings.fromMap(Map<String, dynamic> m) {
@@ -71,6 +78,7 @@ class AppSettings {
       aiEnabled: m['aiEnabled'] == true,
       aiApiKey: (m['aiApiKey'] as String?) ?? '',
       aiModel: (model == null || model.isEmpty) ? defaultAiModel : model,
+      keepRecents: m['keepRecents'] != false,
     );
   }
 }

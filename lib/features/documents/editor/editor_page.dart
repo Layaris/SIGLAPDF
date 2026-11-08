@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -310,7 +311,9 @@ class EditorPageState extends State<EditorPage> {
   // ---------- Esportazione ----------
 
   String get exportName {
-    final base = ctrl.fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '');
+    final base = ctrl.fileName
+        .replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '')
+        .replaceAll(RegExp(r'_firmato$'), ''); // riaperto dai recenti: niente "_firmato_firmato"
     return '${base.isEmpty ? 'documento' : base}_firmato.pdf';
   }
 
@@ -340,7 +343,23 @@ class EditorPageState extends State<EditorPage> {
       _snack(error ?? 'Esportazione non riuscita.');
       return;
     }
+    final services = AppScope.of(context);
+    if (services.settings.value.keepRecents) {
+      unawaited(_rememberRecent(services, out));
+    }
     await _showExported(out);
+  }
+
+  /// Salva il PDF esportato tra i recenti, con una piccola miniatura della prima pagina.
+  Future<void> _rememberRecent(AppServices services, Uint8List out) async {
+    Uint8List? thumb;
+    try {
+      final img = await (widget.rasterizer ?? printingRasterizer)(out, 0, 24);
+      final data = await img?.toByteData(format: ui.ImageByteFormat.png);
+      img?.dispose();
+      thumb = data?.buffer.asUint8List();
+    } catch (_) {}
+    await services.recents.add(name: exportName, pdf: out, pageCount: ctrl.pageCount, thumbnail: thumb);
   }
 
   Future<void> _showExported(Uint8List out) async {
