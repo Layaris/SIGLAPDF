@@ -8,7 +8,6 @@ import '../features/settings/signature_lock.dart';
 import '../features/signatures/signature_repository.dart';
 import '../services/field_detection/ocr.dart';
 import '../services/update_checker.dart';
-import 'l10n/l10n.dart';
 import 'storage/key_value_store.dart';
 import 'utils/file_access.dart';
 

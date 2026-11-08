@@ -126,7 +126,7 @@ void main() {
     await source.settings.update((s) => s.copyWith(inkColor: 'black', aiApiKey: 'sk-segreta'));
     final service = BackupService(source, crypto: _crypto);
     expect(service.buildPayload().toString(), isNot(contains('sk-segreta')), reason: 'la chiave API non va nel backup');
-    final file = await service.export('password-lunga');
+    await service.export('password-lunga');
 
     await source.profile.addProfile('Mamma');
     await source.profile.save(const Profile(values: {ProfileField.firstName: 'Lucia'}));

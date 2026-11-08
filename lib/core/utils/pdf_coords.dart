@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
-import '../l10n/l10n.dart';
 
 /// Rettangolo normalizzato (0–1) rispetto alla pagina come la vede l'utente,
 /// origine in alto a sinistra.
