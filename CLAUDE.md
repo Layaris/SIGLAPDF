@@ -186,6 +186,15 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
   `lib/ web/ assets/ pubspec.*` sul branch principale (e a mano). Usa `npx wrangler@4`; crea il progetto
   se manca. Secret `CLOUDFLARE_API_TOKEN` (Pages Edit) e `CLOUDFLARE_ACCOUNT_ID`; senza secret salta
   la pubblicazione senza fallire. Le chiavi dell'utente stanno sul suo PC (vedi `docs/PUBBLICAZIONE.md`).
+- **Esportazione in due passaggi**: syncfusion appiattisce i campi al salvataggio disegnandoli *sopra* il
+  contenuto. Con campi AcroForm: compila → appiattisce → salva → riapre → disegna firme e testi → salva
+  (verificato con pdftoppm: un campo con sfondo grigio copriva la firma). Le immagini uguali (stesso
+  `Uint8List`) diventano un solo `PdfBitmap`.
+- **Import "Sostituisci"**: prima si leggono e validano tutte le voci, poi si cancella; un backup senza dati
+  utili viene rifiutato. `biometricLock` e la chiave API restano quelli del dispositivo. Iterazioni PBKDF2
+  lette dal file al massimo `maxIterations` (2 000 000). Export e "Sostituisci" chiedono lo sblocco firme.
+- **Recenti**: oltre a 12 file, tetto totale di 80 MB (la box Hive è caricata tutta in memoria).
+- **PageRenderer**: un render in corso si riusa solo se abbastanza nitido, altrimenti se ne accoda uno.
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
