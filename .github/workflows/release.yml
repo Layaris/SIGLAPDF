@@ -67,8 +67,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-      - name: Keystore (facoltativo)
+      - name: Keystore (obbligatorio se si pubblica)
         env:
+          PUBLISH: ${{ inputs.publish }}
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -79,8 +80,12 @@ jobs:
             printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=%s\n' \
               "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" "$RUNNER_TEMP/sigla.jks" > android/key.properties
             echo "Firma con il keystore dei secret."
+          elif [ "$PUBLISH" = "true" ]; then
+            # Un APK con la chiave di debug non si installerebbe sopra quello già pubblicato.
+            echo "::error::Mancano i secret del keystore: non pubblico un APK firmato con la chiave di debug."
+            exit 1
           else
-            echo "::warning::Nessun keystore: APK firmato con la chiave di debug."
+            echo "::warning::Nessun keystore: APK (solo artifact) firmato con la chiave di debug."
           fi
       - run: flutter pub get
       - name: Build APK
