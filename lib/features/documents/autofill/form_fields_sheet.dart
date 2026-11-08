@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/pdf_service.dart';
 import '../editor/editor_controller.dart';
@@ -62,15 +63,15 @@ class _FormFieldsSheetState extends State<_FormFieldsSheet> {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('Campi del modulo', style: Theme.of(context).textTheme.titleLarge)),
+                    Expanded(child: Text(tr('Campi del modulo'), style: Theme.of(context).textTheme.titleLarge)),
                     TextButton.icon(
                       onPressed: widget.onAutofill,
                       icon: const Icon(Icons.auto_fix_high_outlined),
-                      label: const Text('Dal profilo'),
+                      label: Text(tr('Dal profilo')),
                     ),
                   ],
                 ),
-                Text('${fields.length} campi. Diventano testo fisso quando esporti il PDF.', style: TextStyle(color: c.secondary)),
+                Text(tr('{0} campi. Diventano testo fisso quando esporti il PDF.', [fields.length]), style: TextStyle(color: c.secondary)),
                 const SizedBox(height: 16),
                 for (final f in fields) _field(f),
               ],
@@ -83,7 +84,7 @@ class _FormFieldsSheetState extends State<_FormFieldsSheet> {
 
   Widget _field(FormFieldInfo f) {
     final value = widget.controller.formValues[f.name] ?? '';
-    final label = f.page >= 0 ? '${f.name} · pag. ${f.page + 1}' : f.name;
+    final label = f.page >= 0 ? tr('{0} · pag. {1}', [f.name, f.page + 1]) : f.name;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: switch (f.kind) {

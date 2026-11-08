@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:printing/printing.dart';
 
+import '../../core/l10n/l10n.dart';
 import '../../core/utils/pdf_coords.dart';
 import 'field_detector.dart';
 import 'field_kind.dart';
@@ -129,7 +130,7 @@ Ignora gli spazi già compilati. Se non ci sono campi, restituisci un elenco vuo
 
   @override
   Future<List<DetectedField>> detect(DetectionInput input) async {
-    if (apiKey.trim().isEmpty) throw const AiDetectionException('Inserisci la chiave API in Impostazioni.');
+    if (apiKey.trim().isEmpty) throw AiDetectionException(tr('Inserisci la chiave API in Impostazioni.'));
     final out = <DetectedField>[];
     for (final p in input.targetPages.take(maxPages)) {
       final png = await _render(input.pdf, p, dpi);
@@ -147,13 +148,13 @@ Ignora gli spazi già compilati. Se non ci sono campi, restituisci un elenco vuo
           .post(endpoint, headers: headers, body: jsonEncode(buildRequest(png)))
           .timeout(const Duration(seconds: 90));
     } catch (_) {
-      throw const AiDetectionException('Connessione non riuscita. Controlla internet e riprova.');
+      throw AiDetectionException(tr('Connessione non riuscita. Controlla internet e riprova.'));
     }
     if (res.statusCode != 200) throw AiDetectionException(errorMessage(res.statusCode, res.body));
     try {
       return (jsonDecode(utf8.decode(res.bodyBytes)) as Map).cast<String, dynamic>();
     } catch (_) {
-      throw const AiDetectionException('Risposta non valida dal servizio AI.');
+      throw AiDetectionException(tr('Risposta non valida dal servizio AI.'));
     }
   }
 
@@ -165,21 +166,21 @@ Ignora gli spazi già compilati. Se non ci sono campi, restituisci un elenco vuo
       if (err is Map) apiMsg = err['message'] as String?;
     } catch (_) {}
     return switch (status) {
-      401 => 'Chiave API non valida. Controllala in Impostazioni.',
-      403 => 'La chiave API non ha i permessi per questa richiesta.',
-      404 => 'Modello non trovato. Controlla il nome del modello in Impostazioni.',
-      413 => 'La pagina è troppo grande per il servizio AI.',
-      429 => 'Troppe richieste o credito esaurito. Riprova tra poco.',
-      400 => 'Richiesta rifiutata${apiMsg != null ? ': $apiMsg' : '.'}',
-      >= 500 => 'Il servizio AI non è disponibile in questo momento. Riprova più tardi.',
-      _ => 'Errore del servizio AI ($status).',
+      401 => tr('Chiave API non valida. Controllala in Impostazioni.'),
+      403 => tr('La chiave API non ha i permessi per questa richiesta.'),
+      404 => tr('Modello non trovato. Controlla il nome del modello in Impostazioni.'),
+      413 => tr('La pagina è troppo grande per il servizio AI.'),
+      429 => tr('Troppe richieste o credito esaurito. Riprova tra poco.'),
+      400 => apiMsg != null ? tr('Richiesta rifiutata: {0}', [apiMsg]) : tr('Richiesta rifiutata.'),
+      >= 500 => tr('Il servizio AI non è disponibile in questo momento. Riprova più tardi.'),
+      _ => tr('Errore del servizio AI ({0}).', [status]),
     };
   }
 
   /// Converte la risposta dell'API in campi. Tollera testo attorno al JSON.
   static List<DetectedField> parseResponse(Map<String, dynamic> response, {required int page, String source = 'AI'}) {
     final stop = response['stop_reason'];
-    if (stop == 'refusal') throw const AiDetectionException('Il servizio AI ha rifiutato di analizzare questa pagina.');
+    if (stop == 'refusal') throw AiDetectionException(tr('Il servizio AI ha rifiutato di analizzare questa pagina.'));
     final content = response['content'];
     if (content is! List) return const [];
     final text = content
@@ -191,14 +192,14 @@ Ignora gli spazi già compilati. Se non ci sono campi, restituisci un elenco vuo
     final start = text.indexOf('{');
     final end = text.lastIndexOf('}');
     if (start < 0 || end <= start) {
-      if (stop == 'max_tokens') throw const AiDetectionException('Risposta AI incompleta. Riprova.');
+      if (stop == 'max_tokens') throw AiDetectionException(tr('Risposta AI incompleta. Riprova.'));
       return const [];
     }
     Object? decoded;
     try {
       decoded = jsonDecode(text.substring(start, end + 1));
     } catch (_) {
-      throw const AiDetectionException('Risposta AI non leggibile.');
+      throw AiDetectionException(tr('Risposta AI non leggibile.'));
     }
     final fields = decoded is Map ? decoded['fields'] : null;
     if (fields is! List) return const [];

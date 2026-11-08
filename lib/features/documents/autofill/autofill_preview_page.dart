@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/page_frame.dart';
 import '../../../services/field_detection/field_kind.dart';
@@ -78,22 +79,22 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
     final n = _count;
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(tooltip: 'Annulla', icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-        title: const Text('Campi trovati'),
+        leading: IconButton(tooltip: tr('Annulla'), icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+        title: Text(tr('Campi trovati')),
       ),
       body: PageFrame(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
           children: [
             Text(
-              'Controlla i valori proposti. Togli la spunta ai campi che non vuoi compilare.',
+              tr('Controlla i valori proposti. Togli la spunta ai campi che non vuoi compilare.'),
               style: TextStyle(color: c.secondary),
             ),
             if (widget.profiles.length > 1) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Text('Compila con'),
+                  Text(tr('Compila con')),
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
@@ -121,7 +122,7 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: FilledButton(
             onPressed: n == 0 ? null : _confirm,
-            child: Text(n == 1 ? 'Inserisci 1 campo' : 'Inserisci $n campi'),
+            child: Text(n == 1 ? tr('Inserisci 1 campo') : tr('Inserisci {0} campi', [n])),
           ),
         ),
       ),
@@ -143,7 +144,7 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
               Checkbox(
                 value: p.include,
                 onChanged: (v) => setState(() => p.include = v ?? false),
-                semanticLabel: 'Compila ${f.kind.label}',
+                semanticLabel: tr('Compila {0}', [f.kind.label]),
               ),
               Expanded(
                 child: Column(
@@ -152,7 +153,7 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
                     const SizedBox(height: 10),
                     Text(f.kind.label, style: Theme.of(context).textTheme.titleSmall),
                     Text(
-                      '"${f.label}" · pagina ${f.page + 1}${f.source == 'AI' ? ' · AI' : ''}',
+                      tr('"{0}" · pagina {1}', [f.label, f.page + 1]) + (f.source == 'AI' ? ' · AI' : f.source == 'OCR' ? ' · OCR' : ''),
                       style: TextStyle(color: c.secondary, fontSize: 13),
                     ),
                     const SizedBox(height: 8),
@@ -162,7 +163,7 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
                         children: [
                           for (final o in [...f.options.map((o) => o.label), ''])
                             ChoiceChip(
-                              label: Text(o.isEmpty ? 'Nessuna' : o),
+                              label: Text(o.isEmpty ? tr('Nessuna') : o),
                               selected: p.value == o,
                               onSelected: (_) => setState(() {
                                 p.value = o;
@@ -173,7 +174,7 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
                       )
                     else if (p.isSignature)
                       Text(
-                        widget.hasSignature ? 'Verrà inserita la firma predefinita.' : 'Nessuna firma salvata: crea una firma per inserirla.',
+                        widget.hasSignature ? tr('Verrà inserita la firma predefinita.') : tr('Nessuna firma salvata: crea una firma per inserirla.'),
                         style: TextStyle(color: widget.hasSignature ? c.ink : c.danger),
                       )
                     else
@@ -181,8 +182,8 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
                         controller: _ctrls[i],
                         enabled: p.include,
                         decoration: InputDecoration(
-                          labelText: 'Valore',
-                          hintText: f.kind == FieldKind.text ? null : 'Manca nel profilo',
+                          labelText: tr('Valore'),
+                          hintText: f.kind == FieldKind.text ? null : tr('Manca nel profilo'),
                           isDense: true,
                         ),
                         onChanged: (v) => setState(() {

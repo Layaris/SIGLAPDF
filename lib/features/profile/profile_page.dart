@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/app_services.dart';
+import '../../core/l10n/l10n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/page_frame.dart';
 import 'profile_model.dart';
@@ -69,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _addProfile() async {
-    final name = await _askName(title: 'Nuovo profilo', initial: '');
+    final name = await _askName(title: tr('Nuovo profilo'), initial: '');
     if (name == null) return;
     _debounce?.cancel();
     await _repo.save(_collect());
@@ -86,14 +87,14 @@ class _ProfilePageState extends State<ProfilePage> {
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Nome', hintText: 'Es. Mamma, Ufficio'),
+          decoration: InputDecoration(labelText: tr('Nome'), hintText: tr('Es. Mamma, Ufficio')),
           onSubmitted: (v) => Navigator.pop(context, v.trim().isEmpty ? null : v.trim()),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Annulla'))),
           FilledButton(
             onPressed: () => Navigator.pop(context, ctrl.text.trim().isEmpty ? null : ctrl.text.trim()),
-            child: const Text('Salva'),
+            child: Text(tr('Salva')),
           ),
         ],
       ),
@@ -105,18 +106,18 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _profileAction(String a) async {
     final current = _repo.active;
     if (a == 'rename') {
-      final n = await _askName(title: 'Rinomina profilo', initial: current.label);
+      final n = await _askName(title: tr('Rinomina profilo'), initial: current.label);
       if (n != null) await _repo.renameProfile(current.id, n);
       setState(() {});
     } else if (a == 'delete') {
       final ok = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text('Eliminare "${current.label}"?'),
-          content: const Text('I dati di questo profilo verranno cancellati.'),
+          title: Text(tr('Eliminare "{0}"?', [current.label])),
+          content: Text(tr('I dati di questo profilo verranno cancellati.')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Elimina')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Annulla'))),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Elimina'))),
           ],
         ),
       );
@@ -139,7 +140,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 onSelected: (_) => _switchTo(p.id),
               ),
             ),
-          ActionChip(avatar: const Icon(Icons.add, size: 18), label: const Text('Profilo'), onPressed: _addProfile),
+          ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Profilo')), onPressed: _addProfile),
         ],
       ),
     );
@@ -151,7 +152,7 @@ class _ProfilePageState extends State<ProfilePage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Text('Sesso', style: TextStyle(color: AppColors.of(context).secondary)),
+          Text(tr('Sesso'), style: TextStyle(color: AppColors.of(context).secondary)),
           const SizedBox(width: 16),
           SegmentedButton<String>(
             segments: const [
@@ -300,7 +301,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   Text(name.isEmpty ? _repo.active.label : name, style: t.titleMedium, maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 2),
                   Text(
-                    filled == total ? 'Profilo completo' : '$filled di $total dati compilati',
+                    filled == total ? tr('Profilo completo') : tr('{0} di {1} dati compilati', [filled, total]),
                     style: TextStyle(color: c.secondary, fontSize: 13),
                   ),
                   const SizedBox(height: 8),
@@ -329,14 +330,14 @@ class _ProfilePageState extends State<ProfilePage> {
     final cfWarning = cf.isNotEmpty && !RegExp(r'^[A-Z0-9]{16}$').hasMatch(cf.toUpperCase());
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profilo'),
+        title: Text(tr('Profilo')),
         actions: [
           PopupMenuButton<String>(
-            tooltip: 'Opzioni del profilo',
+            tooltip: tr('Opzioni del profilo'),
             onSelected: _profileAction,
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'rename', child: Text('Rinomina profilo')),
-              if (_repo.profiles.length > 1) const PopupMenuItem(value: 'delete', child: Text('Elimina profilo')),
+              PopupMenuItem(value: 'rename', child: Text(tr('Rinomina profilo'))),
+              if (_repo.profiles.length > 1) PopupMenuItem(value: 'delete', child: Text(tr('Elimina profilo'))),
             ],
           ),
           if (_savedHint)
@@ -345,7 +346,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Row(children: [
                 Icon(Icons.check, size: 18, color: c.success),
                 const SizedBox(width: 4),
-                Text('Salvato', style: TextStyle(color: c.success)),
+                Text(tr('Salvato'), style: TextStyle(color: c.success)),
               ]),
             ),
         ],
@@ -363,17 +364,17 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Servono per compilare i moduli in un tocco. Restano solo su questo dispositivo.',
+              tr('Servono per compilare i moduli in un tocco. Restano solo su questo dispositivo.'),
               style: TextStyle(color: c.secondary),
             ),
-            _section('Persona'),
+            _section(tr('Persona')),
             _row([_field(ProfileField.firstName), _field(ProfileField.lastName)]),
             _row([
               _field(
                 ProfileField.birthDate,
                 keyboard: TextInputType.datetime,
                 hint: 'gg/mm/aaaa',
-                suffix: IconButton(tooltip: 'Scegli la data', icon: const Icon(Icons.calendar_month_outlined), onPressed: _pickBirthDate),
+                suffix: IconButton(tooltip: tr('Scegli la data'), icon: const Icon(Icons.calendar_month_outlined), onPressed: _pickBirthDate),
               ),
               _field(ProfileField.birthPlace),
             ]),
@@ -382,21 +383,21 @@ class _ProfilePageState extends State<ProfilePage> {
             if (cfWarning)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12, left: 4),
-                child: Text('Il codice fiscale di solito ha 16 caratteri.', style: TextStyle(color: c.secondary, fontSize: 13)),
+                child: Text(tr('Il codice fiscale di solito ha 16 caratteri.'), style: TextStyle(color: c.secondary, fontSize: 13)),
               ),
-            _section('Residenza'),
-            _field(ProfileField.address, hint: 'Via Roma 1'),
+            _section(tr('Residenza')),
+            _field(ProfileField.address, hint: tr('Via Roma 1')),
             _row([
               _field(ProfileField.zip, keyboard: TextInputType.number, maxLength: 5),
               _field(ProfileField.city),
               _field(ProfileField.province, upper: true, maxLength: 2, hint: 'RM'),
             ]),
-            _section('Contatti'),
+            _section(tr('Contatti')),
             _row([
               _field(ProfileField.phone, keyboard: TextInputType.phone),
               _field(ProfileField.email, keyboard: TextInputType.emailAddress),
             ]),
-            _section('Altri dati'),
+            _section(tr('Altri dati')),
             for (var i = 0; i < _custom.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -405,7 +406,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     Expanded(
                       child: TextField(
                         controller: _custom[i].$1,
-                        decoration: const InputDecoration(labelText: 'Nome del dato', hintText: 'Patente'),
+                        decoration: InputDecoration(labelText: tr('Nome del dato'), hintText: tr('Patente')),
                         onChanged: (_) => _changed(),
                       ),
                     ),
@@ -414,17 +415,17 @@ class _ProfilePageState extends State<ProfilePage> {
                       flex: 2,
                       child: TextField(
                         controller: _custom[i].$2,
-                        decoration: const InputDecoration(labelText: 'Valore'),
+                        decoration: InputDecoration(labelText: tr('Valore')),
                         onChanged: (_) => _changed(),
                       ),
                     ),
-                    IconButton(tooltip: 'Rimuovi', icon: const Icon(Icons.remove_circle_outline), onPressed: () => _removeCustom(i)),
+                    IconButton(tooltip: tr('Rimuovi'), icon: const Icon(Icons.remove_circle_outline), onPressed: () => _removeCustom(i)),
                   ],
                 ),
               ),
             Align(
               alignment: Alignment.centerLeft,
-              child: TextButton.icon(onPressed: _addCustom, icon: const Icon(Icons.add), label: const Text('Aggiungi un dato')),
+              child: TextButton.icon(onPressed: _addCustom, icon: const Icon(Icons.add), label: Text(tr('Aggiungi un dato'))),
             ),
           ],
         ),

@@ -90,6 +90,7 @@ void main() {
     await tester.pump();
     expect(s.settings.value.inkColor, 'black');
 
+    await tester.scrollUntilVisible(find.text('Usa il riconoscimento AI'), 300, scrollable: find.byType(Scrollable).first);
     await tester.ensureVisible(find.text('Usa il riconoscimento AI'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Usa il riconoscimento AI'));

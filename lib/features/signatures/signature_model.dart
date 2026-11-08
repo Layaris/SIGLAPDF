@@ -1,14 +1,18 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import '../../core/l10n/l10n.dart';
 
 /// Firma completa o sigla (iniziali).
 enum SignatureKind {
   signature('Firma'),
   initials('Sigla');
 
-  const SignatureKind(this.label);
-  final String label;
+  const SignatureKind(this._it);
+  final String _it;
+
+  /// Etichetta nella lingua dell'interfaccia.
+  String get label => tr(_it);
 
   static SignatureKind parse(Object? v) => v == 'initials' ? initials : signature;
 }
@@ -88,7 +92,7 @@ class Signature {
     };
     return Signature(
       id: m['id'] as String,
-      name: (m['name'] as String?)?.trim().isNotEmpty == true ? (m['name'] as String).trim() : 'Firma',
+      name: (m['name'] as String?)?.trim().isNotEmpty == true ? (m['name'] as String).trim() : tr('Firma'),
       kind: SignatureKind.parse(m['kind']),
       source: SignatureSource.parse(m['source']),
       png: png,

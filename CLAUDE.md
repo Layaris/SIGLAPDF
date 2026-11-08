@@ -69,6 +69,13 @@ flutter build apk --release          # NON lanciarlo nel container: si builda su
 ## Convenzioni
 
 - Testi UI in italiano, brevi, verbi d'azione ("Firma", "Esporta PDF").
+- **Lingue**: ogni testo visibile passa da `tr('testo italiano', [arg0, arg1])` (`core/l10n/l10n.dart`),
+  con segnaposto `{0}`, `{1}`. La traduzione inglese va aggiunta in `core/l10n/strings_en.dart`
+  (chiave = testo italiano come scritto nel sorgente). `test/l10n_test.dart` fallisce se manca.
+  Non usare `tr()` in valori `const`/`static final`/liste globali (verrebbero calcolati una volta
+  sola): usare getter. Le etichette degli enum si traducono con `String get label => tr(_it)`.
+  Lingua: impostazione `language` ('it' predefinita, 'en', 'system'); cambiarla ricostruisce
+  l'app (chiave sul `MaterialApp`) e `HomeShell` ricorda la scheda aperta.
 - Logica pura in `services/` e nei modelli, senza dipendenze dalla UI, coperta da test.
 - Niente `dart:io` diretto nel codice condiviso: usare `XFile` (cross_file) e guardie `kIsWeb`.
 - Coordinate degli elementi **normalizzate 0–1** rispetto alla pagina come la vede l'utente

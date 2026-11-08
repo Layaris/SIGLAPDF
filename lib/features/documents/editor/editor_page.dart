@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:printing/printing.dart';
 
 import '../../../core/app_services.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/field_detection/anthropic_detector.dart';
 import '../../../services/field_detection/device_detector.dart';
@@ -182,7 +183,7 @@ class EditorPageState extends State<EditorPage> {
   /// Evidenziatore: riquadro giallo trasparente da posizionare sopra il testo.
   void addHighlight() {
     final page = currentPage;
-    final r = _factory(page).textRect('evidenziare questa parte', fontPts: 11, center: _freeCenter(page));
+    final r = _factory(page).textRect(tr('evidenziare questa parte'), fontPts: 11, center: _freeCenter(page));
     ctrl.add(type: ElementType.highlight, page: page, rect: r, color: highlightColor);
   }
 
@@ -229,7 +230,7 @@ class EditorPageState extends State<EditorPage> {
               shrinkWrap: true,
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               children: [
-                Text(kind == SignatureKind.initials ? 'Scegli la sigla' : 'Scegli la firma', style: Theme.of(context).textTheme.titleLarge),
+                Text(kind == SignatureKind.initials ? tr('Scegli la sigla') : tr('Scegli la firma'), style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 12),
                 for (final s in list)
                   Padding(
@@ -244,7 +245,7 @@ class EditorPageState extends State<EditorPage> {
                             SizedBox(height: 90, child: SignatureImage(signature: s, padding: const EdgeInsets.all(12))),
                             Padding(
                               padding: const EdgeInsets.all(12),
-                              child: Text(s.isDefault ? '${s.name} · predefinita' : s.name),
+                              child: Text(s.isDefault ? tr('{0} · predefinita', [s.name]) : s.name),
                             ),
                           ],
                         ),
@@ -258,7 +259,7 @@ class EditorPageState extends State<EditorPage> {
       );
 
   Future<void> addText({String? preset}) async {
-    final text = preset ?? await showTextInputDialog(context, title: 'Aggiungi testo');
+    final text = preset ?? await showTextInputDialog(context, title: tr('Aggiungi testo'));
     if (text == null || !mounted) return;
     final page = currentPage;
     ctrl.add(
@@ -293,13 +294,13 @@ class EditorPageState extends State<EditorPage> {
     final sel = ctrl.selected;
     if (sel != null && sel.type == ElementType.initials) {
       final n = ctrl.replicateOnAllPages(sel);
-      _snack(n == 0 ? 'Tutte le pagine hanno già la sigla' : 'Sigla aggiunta su $n pagine');
+      _snack(n == 0 ? tr('Tutte le pagine hanno già la sigla') : tr('Sigla aggiunta su {0} pagine', [n]));
       return;
     }
     if (!await ensureSignaturesUnlocked(context) || !mounted) return;
     final initials = AppScope.of(context).signatures.defaultOf(SignatureKind.initials);
     if (initials == null) {
-      _snack('Crea prima una sigla');
+      _snack(tr('Crea prima una sigla'));
       await showNewSignatureSheet(context, initialKind: SignatureKind.initials);
       return;
     }
@@ -314,11 +315,11 @@ class EditorPageState extends State<EditorPage> {
         ),
     ];
     ctrl.addAll(items);
-    _snack('Sigla aggiunta su ${items.length} ${items.length == 1 ? 'pagina' : 'pagine'}');
+    _snack(items.length == 1 ? tr('Sigla aggiunta su 1 pagina') : tr('Sigla aggiunta su {0} pagine', [items.length]));
   }
 
   Future<void> _editText(PlacedElement e) async {
-    final t = await showTextInputDialog(context, title: 'Modifica testo', initial: e.text, action: 'Salva');
+    final t = await showTextInputDialog(context, title: tr('Modifica testo'), initial: e.text, action: tr('Salva'));
     if (t == null) return;
     ctrl.updateElement(e.copyWith(text: t));
   }
@@ -327,11 +328,11 @@ class EditorPageState extends State<EditorPage> {
 
   Future<void> saveTemplate() async {
     if (ctrl.elements.isEmpty) {
-      _snack('Aggiungi prima firma, testi o data: il modello ricorda dove li hai messi');
+      _snack(tr('Aggiungi prima firma, testi o data: il modello ricorda dove li hai messi'));
       return;
     }
-    final base = ctrl.fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '').replaceAll(RegExp(r'_firmato$'), '');
-    final name = await showTextInputDialog(context, title: 'Salva come modello', initial: base, label: 'Nome del modello', action: 'Salva');
+    final base = ctrl.fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '').replaceAll(RegExp(r'_(firmato|signed)$'), '');
+    final name = await showTextInputDialog(context, title: tr('Salva come modello'), initial: base, label: tr('Nome del modello'), action: tr('Salva'));
     if (name == null || !mounted) return;
     await AppScope.of(context).templates.save(
           name: name,
@@ -340,8 +341,8 @@ class EditorPageState extends State<EditorPage> {
           fingerprint: ctrl.info.fingerprint,
         );
     _snack(ctrl.info.fingerprint == null
-        ? 'Modello salvato. Applicalo dal menu quando riapri questo modulo.'
-        : 'Modello salvato. La prossima volta che apri questo modulo te lo propongo.');
+        ? tr('Modello salvato. Applicalo dal menu quando riapri questo modulo.')
+        : tr('Modello salvato. La prossima volta che apri questo modulo te lo propongo.'));
   }
 
   Future<void> applyTemplate(FormTemplate t) async {
@@ -359,13 +360,13 @@ class EditorPageState extends State<EditorPage> {
     );
     ctrl.addAll(items);
     final skipped = t.elements.length - items.length;
-    _snack(skipped > 0 ? 'Modello applicato (${items.length} elementi, $skipped saltati: manca la firma o la pagina)' : 'Modello applicato');
+    _snack(skipped > 0 ? tr('Modello applicato ({0} elementi, {1} saltati: manca la firma o la pagina)', [items.length, skipped]) : tr('Modello applicato'));
   }
 
   Future<void> chooseTemplate() async {
     final list = AppScope.of(context).templates.all;
     if (list.isEmpty) {
-      _snack('Nessun modello. Posiziona gli elementi e usa "Salva come modello".');
+      _snack(tr('Nessun modello. Posiziona gli elementi e usa "Salva come modello".'));
       return;
     }
     final t = await showModalBottomSheet<FormTemplate>(
@@ -377,14 +378,14 @@ class EditorPageState extends State<EditorPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text('Applica un modello', style: Theme.of(context).textTheme.titleLarge),
+              child: Text(tr('Applica un modello'), style: Theme.of(context).textTheme.titleLarge),
             ),
             for (final t in list)
               ListTile(
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 title: Text(t.name),
-                subtitle: Text('${t.elements.length} elementi · ${t.pageCount} ${t.pageCount == 1 ? 'pagina' : 'pagine'}'),
-                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint ? const Text('Questo modulo') : null,
+                subtitle: Text('${tr('{0} elementi', [t.elements.length])} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}'),
+                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint ? Text(tr('Questo modulo')) : null,
                 onTap: () => Navigator.pop(context, t),
               ),
           ],
@@ -399,8 +400,8 @@ class EditorPageState extends State<EditorPage> {
   String get exportName {
     final base = ctrl.fileName
         .replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '')
-        .replaceAll(RegExp(r'_firmato$'), ''); // riaperto dai recenti: niente "_firmato_firmato"
-    return '${base.isEmpty ? 'documento' : base}_firmato.pdf';
+        .replaceAll(RegExp(r'_(firmato|signed)$'), ''); // riaperto dai recenti: niente "_firmato_firmato"
+    return '${base.isEmpty ? tr('documento') : base}${tr('_firmato')}.pdf';
   }
 
   Future<void> export() async {
@@ -409,10 +410,10 @@ class EditorPageState extends State<EditorPage> {
     unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const PopScope(
+      builder: (_) => PopScope(
         canPop: false,
         child: AlertDialog(
-          content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text('Preparo il PDF…')]),
+          content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Preparo il PDF…'))]),
         ),
       ),
     ));
@@ -421,12 +422,12 @@ class EditorPageState extends State<EditorPage> {
     try {
       out = await const PdfService().export(ctrl.bytes, elements: ctrl.elements, formValues: ctrl.changedFormValues);
     } catch (e) {
-      error = 'Esportazione non riuscita. Riprova.';
+      error = tr('Esportazione non riuscita. Riprova.');
     }
     nav.pop();
     if (!mounted) return;
     if (out == null) {
-      _snack(error ?? 'Esportazione non riuscita.');
+      _snack(error ?? tr('Esportazione non riuscita.'));
       return;
     }
     final services = AppScope.of(context);
@@ -462,19 +463,19 @@ class EditorPageState extends State<EditorPage> {
               Row(children: [
                 Icon(Icons.check_circle, color: AppColors.of(sheet).success),
                 const SizedBox(width: 8),
-                Text('PDF pronto', style: Theme.of(sheet).textTheme.titleLarge),
+                Text(tr('PDF pronto'), style: Theme.of(sheet).textTheme.titleLarge),
               ]),
               const SizedBox(height: 4),
-              Text('Firme e testi sono stati fissati nel documento.', style: TextStyle(color: AppColors.of(sheet).secondary)),
+              Text(tr('Firme e testi sono stati fissati nel documento.'), style: TextStyle(color: AppColors.of(sheet).secondary)),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () async {
                   Navigator.pop(sheet);
                   final ok = await files.save(fileName: exportName, bytes: out, mimeType: 'application/pdf');
-                  if (ok && mounted) _snack('PDF salvato');
+                  if (ok && mounted) _snack(tr('PDF salvato'));
                 },
                 icon: const Icon(Icons.download),
-                label: const Text('Salva'),
+                label: Text(tr('Salva')),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
@@ -483,7 +484,7 @@ class EditorPageState extends State<EditorPage> {
                   await Printing.sharePdf(bytes: out, filename: exportName);
                 },
                 icon: const Icon(Icons.ios_share),
-                label: const Text('Condividi'),
+                label: Text(tr('Condividi')),
               ),
             ],
           ),
@@ -497,11 +498,11 @@ class EditorPageState extends State<EditorPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Uscire senza esportare?'),
-        content: const Text('Le modifiche a questo documento andranno perse.'),
+        title: Text(tr('Uscire senza esportare?')),
+        content: Text(tr('Le modifiche a questo documento andranno perse.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Resta')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Esci')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Resta'))),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Esci'))),
         ],
       ),
     );
@@ -534,7 +535,7 @@ class EditorPageState extends State<EditorPage> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Text('Con quale profilo?', style: Theme.of(context).textTheme.titleLarge),
+              child: Text(tr('Con quale profilo?'), style: Theme.of(context).textTheme.titleLarge),
             ),
             for (final p in repo.profiles)
               ListTile(
@@ -555,12 +556,12 @@ class EditorPageState extends State<EditorPage> {
     final profile = await _pickProfile();
     if (profile == null || !mounted) return;
     if (profile.isEmpty) {
-      _snack('Compila prima il tuo profilo');
+      _snack(tr('Compila prima il tuo profilo'));
       return;
     }
     final values = acroFormValuesFromProfile(ctrl.info.fields, ctrl.formValues, profile, today: todayText());
     ctrl.setFormValues(values);
-    _snack(values.isEmpty ? 'Nessun campo da compilare con il profilo' : 'Compilati ${values.length} campi dal profilo');
+    _snack(values.isEmpty ? tr('Nessun campo da compilare con il profilo') : tr('Compilati {0} campi dal profilo', [values.length]));
   }
 
   /// Inserisce un dato del profilo come testo sulla pagina.
@@ -569,7 +570,7 @@ class EditorPageState extends State<EditorPage> {
     if (profile == null || !mounted) return;
     final entries = profile.filledEntries;
     if (entries.isEmpty) {
-      _snack('Il profilo è vuoto: aggiungi i tuoi dati nella sezione Profilo');
+      _snack(tr('Il profilo è vuoto: aggiungi i tuoi dati nella sezione Profilo'));
       return;
     }
     final picked = await showModalBottomSheet<String>(
@@ -584,7 +585,7 @@ class EditorPageState extends State<EditorPage> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Text('Inserisci un dato', style: Theme.of(context).textTheme.titleLarge),
+                child: Text(tr('Inserisci un dato'), style: Theme.of(context).textTheme.titleLarge),
               ),
               for (final (label, value) in entries)
                 ListTile(title: Text(value), subtitle: Text(label), onTap: () => Navigator.pop(context, value)),
@@ -612,20 +613,20 @@ class EditorPageState extends State<EditorPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Come cercare i campi?', style: Theme.of(context).textTheme.titleLarge),
+              Text(tr('Come cercare i campi?'), style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
               ListTile(
                 leading: const Icon(Icons.offline_bolt_outlined),
-                title: const Text('Sul dispositivo'),
+                title: Text(tr('Sul dispositivo')),
                 subtitle: Text(device.hasOcr
-                    ? 'Offline. Legge anche i documenti scansionati.'
-                    : 'Offline. Funziona con i PDF che contengono testo.'),
+                    ? tr('Offline. Legge anche i documenti scansionati.')
+                    : tr('Offline. Funziona con i PDF che contengono testo.')),
                 onTap: () => Navigator.pop(context, false),
               ),
               ListTile(
                 leading: const Icon(Icons.auto_awesome_outlined),
-                title: const Text('AI avanzata'),
-                subtitle: const Text('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.'),
+                title: Text(tr('AI avanzata')),
+                subtitle: Text(tr('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.')),
                 onTap: () => Navigator.pop(context, true),
               ),
             ],
@@ -636,7 +637,7 @@ class EditorPageState extends State<EditorPage> {
     if (useAi == null) return null;
     if (!useAi) return [device];
     if (s.aiApiKey.trim().isEmpty) {
-      _snack('Inserisci la chiave API in Impostazioni › Riconoscimento AI');
+      _snack(tr('Inserisci la chiave API in Impostazioni › Riconoscimento AI'));
       return null;
     }
     return [AnthropicFieldDetector(apiKey: s.aiApiKey, model: s.aiModel)];
@@ -652,9 +653,9 @@ class EditorPageState extends State<EditorPage> {
     unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => const PopScope(
+      builder: (_) => PopScope(
         canPop: false,
-        child: AlertDialog(content: Row(children: [CircularProgressIndicator(), SizedBox(width: 20), Text('Cerco i campi…')])),
+        child: AlertDialog(content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Cerco i campi…'))])),
       ),
     ));
     final found = <DetectedField>[];
@@ -671,7 +672,7 @@ class EditorPageState extends State<EditorPage> {
       } on PdfOpenException catch (e) {
         error = e.message;
       } catch (_) {
-        error = 'Riconoscimento non riuscito.';
+        error = tr('Riconoscimento non riuscito.');
       }
     }
     nav.pop();
@@ -679,8 +680,8 @@ class EditorPageState extends State<EditorPage> {
     if (found.isEmpty) {
       _snack(error ??
           (services.settings.value.aiEnabled || services.ocr != null
-              ? 'Nessun campo riconosciuto. Puoi aggiungere i testi a mano.'
-              : 'Nessun campo riconosciuto. Se è una scansione, usa l\'app Android o il riconoscimento AI.'));
+              ? tr('Nessun campo riconosciuto. Puoi aggiungere i testi a mano.')
+              : tr('Nessun campo riconosciuto. Se è una scansione, usa l\'app Android o il riconoscimento AI.')));
       return;
     }
     final signature = services.signatures.defaultOf(SignatureKind.signature);
@@ -693,7 +694,7 @@ class EditorPageState extends State<EditorPage> {
         profiles: services.profile.profiles,
         initialProfileId: services.profile.activeId,
         today: todayText(),
-        note: profile.isEmpty ? 'Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.' : null,
+        note: profile.isEmpty ? tr('Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.') : null,
       ),
     ));
     if (confirmed == null || !mounted) return;
@@ -706,13 +707,13 @@ class EditorPageState extends State<EditorPage> {
       signatureAspect: signature?.aspectRatio ?? 3,
     );
     ctrl.addAll(items);
-    _snack(items.length == 1 ? 'Inserito 1 campo' : 'Inseriti ${items.length} campi');
+    _snack(items.length == 1 ? tr('Inserito 1 campo') : tr('Inseriti {0} campi', [items.length]));
   }
 
   List<Widget> extraTools(BuildContext context) => [
-        if (_hasForm) _ToolButton(icon: Icons.list_alt_outlined, label: 'Campi', onTap: openFields),
-        _ToolButton(icon: Icons.auto_fix_high_outlined, label: 'Compila', onTap: autoDetect),
-        _ToolButton(icon: Icons.badge_outlined, label: 'Dati profilo', onTap: insertProfileData),
+        if (_hasForm) _ToolButton(icon: Icons.list_alt_outlined, label: tr('Campi'), onTap: openFields),
+        _ToolButton(icon: Icons.auto_fix_high_outlined, label: tr('Compila'), onTap: autoDetect),
+        _ToolButton(icon: Icons.badge_outlined, label: tr('Dati profilo'), onTap: insertProfileData),
       ];
 
   /// Evidenzia i campi AcroForm sulla pagina; toccandoli si apre il pannello.
@@ -725,7 +726,7 @@ class EditorPageState extends State<EditorPage> {
             rect: f.rect!.toRect(size),
             child: Semantics(
               button: true,
-              label: 'Campo ${f.name}',
+              label: tr('Campo {0}', [f.name]),
               child: GestureDetector(
                 onTap: () => openFields(focus: f.name),
                 child: Container(
@@ -785,19 +786,19 @@ class EditorPageState extends State<EditorPage> {
               appBar: AppBar(
                 title: Text(ctrl.fileName, overflow: TextOverflow.ellipsis),
                 actions: [
-                  IconButton(tooltip: 'Annulla', onPressed: ctrl.canUndo ? ctrl.undo : null, icon: const Icon(Icons.undo)),
-                  IconButton(tooltip: 'Ripeti', onPressed: ctrl.canRedo ? ctrl.redo : null, icon: const Icon(Icons.redo)),
+                  IconButton(tooltip: tr('Annulla'), onPressed: ctrl.canUndo ? ctrl.undo : null, icon: const Icon(Icons.undo)),
+                  IconButton(tooltip: tr('Ripeti'), onPressed: ctrl.canRedo ? ctrl.redo : null, icon: const Icon(Icons.redo)),
                   PopupMenuButton<String>(
-                    tooltip: 'Altro',
+                    tooltip: tr('Altro'),
                     onSelected: (v) => v == 'save' ? saveTemplate() : chooseTemplate(),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(value: 'save', child: Text('Salva come modello')),
-                      PopupMenuItem(value: 'apply', child: Text('Applica un modello')),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'save', child: Text(tr('Salva come modello'))),
+                      PopupMenuItem(value: 'apply', child: Text(tr('Applica un modello'))),
                     ],
                   ),
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: FilledButton(onPressed: export, child: const Text('Esporta PDF')),
+                    child: FilledButton(onPressed: export, child: Text(tr('Esporta PDF'))),
                   ),
                 ],
               ),
@@ -849,7 +850,7 @@ class EditorPageState extends State<EditorPage> {
             padding: const EdgeInsets.symmetric(vertical: _gap / 2),
             child: Center(
               child: Semantics(
-                label: 'Pagina ${i + 1} di ${ctrl.pageCount}',
+                label: tr('Pagina {0} di {1}', [i + 1, ctrl.pageCount]),
                 child: SizedBox.fromSize(
                   size: size,
                   child: GestureDetector(
@@ -998,7 +999,7 @@ class EditorPageState extends State<EditorPage> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Semantics(
                 button: true,
-                label: 'Vai alla pagina ${i + 1}',
+                label: tr('Vai alla pagina {0}', [i + 1]),
                 child: InkWell(
                   onTap: () => onTap(i),
                   borderRadius: BorderRadius.circular(6),
@@ -1073,15 +1074,15 @@ class EditorPageState extends State<EditorPage> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (ctrl.pageCount > 1 && MediaQuery.sizeOf(context).width < 1000)
-            IconButton(tooltip: 'Pagine', onPressed: _showPagesSheet, icon: const Icon(Icons.grid_view_outlined)),
+            IconButton(tooltip: tr('Pagine'), onPressed: _showPagesSheet, icon: const Icon(Icons.grid_view_outlined)),
           IconButton(
-            tooltip: 'Riduci',
+            tooltip: tr('Riduci'),
             onPressed: _zoom > 1 ? () => _setZoom(((_zoom - 0.5) * 2).round() / 2) : null,
             icon: const Icon(Icons.remove),
           ),
           Text('${(_zoom * 100).round()}%', style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()])),
           IconButton(
-            tooltip: 'Ingrandisci',
+            tooltip: tr('Ingrandisci'),
             onPressed: _zoom < 3 ? () => _setZoom(((_zoom + 0.5) * 2).round() / 2) : null,
             icon: const Icon(Icons.add),
           ),
@@ -1113,16 +1114,16 @@ class EditorPageState extends State<EditorPage> {
   }
 
   Widget _toolbar() => _bar([
-        _ToolButton(icon: Icons.gesture, label: 'Firma', onTap: () => addSignature(SignatureKind.signature)),
+        _ToolButton(icon: Icons.gesture, label: tr('Firma'), onTap: () => addSignature(SignatureKind.signature)),
         _ToolButton(icon: Icons.short_text, label: 'Sigla', onTap: () => addSignature(SignatureKind.initials)),
-        _ToolButton(icon: Icons.edit_calendar_outlined, label: 'Firma e data', onTap: addSignedDate),
-        _ToolButton(icon: Icons.title, label: 'Testo', onTap: addText),
-        _ToolButton(icon: Icons.today_outlined, label: 'Data', onTap: addDate),
-        _ToolButton(icon: Icons.check, label: 'Spunta', onTap: () => addMark(ElementType.check)),
-        _ToolButton(icon: Icons.close, label: 'Croce', onTap: () => addMark(ElementType.cross)),
-        _ToolButton(icon: Icons.brush_outlined, label: 'Penna', onTap: _toggleDraw),
-        _ToolButton(icon: Icons.highlight_outlined, label: 'Evidenzia', onTap: addHighlight),
-        _ToolButton(icon: Icons.library_add_check_outlined, label: 'Sigla tutte', onTap: initialAllPages),
+        _ToolButton(icon: Icons.edit_calendar_outlined, label: tr('Firma e data'), onTap: addSignedDate),
+        _ToolButton(icon: Icons.title, label: tr('Testo'), onTap: addText),
+        _ToolButton(icon: Icons.today_outlined, label: tr('Data'), onTap: addDate),
+        _ToolButton(icon: Icons.check, label: tr('Spunta'), onTap: () => addMark(ElementType.check)),
+        _ToolButton(icon: Icons.close, label: tr('Croce'), onTap: () => addMark(ElementType.cross)),
+        _ToolButton(icon: Icons.brush_outlined, label: tr('Penna'), onTap: _toggleDraw),
+        _ToolButton(icon: Icons.highlight_outlined, label: tr('Evidenzia'), onTap: addHighlight),
+        _ToolButton(icon: Icons.library_add_check_outlined, label: tr('Sigla tutte'), onTap: initialAllPages),
         ...extraTools(context),
       ]);
 
@@ -1135,9 +1136,9 @@ class EditorPageState extends State<EditorPage> {
         children: [
           Icon(Icons.dashboard_customize_outlined, color: c.accent),
           const SizedBox(width: 12),
-          Expanded(child: Text('Modulo già compilato: vuoi rimettere tutto come in "${t.name}"?')),
-          TextButton(onPressed: () => setState(() => _templateOffer = null), child: const Text('No')),
-          FilledButton(onPressed: () => applyTemplate(t), child: const Text('Applica')),
+          Expanded(child: Text(tr('Modulo già compilato: vuoi rimettere tutto come in "{0}"?', [t.name]))),
+          TextButton(onPressed: () => setState(() => _templateOffer = null), child: Text(tr('No'))),
+          FilledButton(onPressed: () => applyTemplate(t), child: Text(tr('Applica'))),
         ],
       ),
     );
@@ -1156,50 +1157,50 @@ class EditorPageState extends State<EditorPage> {
       _ToolButton(
         icon: Icons.circle,
         iconColor: InkColors.blue,
-        label: _penColor == InkColors.blue.toARGB32() ? '• Blu' : 'Blu',
+        label: _penColor == InkColors.blue.toARGB32() ? tr('• Blu') : tr('Blu'),
         onTap: () => setState(() => _penColor = InkColors.blue.toARGB32()),
       ),
       _ToolButton(
         icon: Icons.circle,
         iconColor: InkColors.black,
-        label: _penColor == InkColors.black.toARGB32() ? '• Nero' : 'Nero',
+        label: _penColor == InkColors.black.toARGB32() ? tr('• Nero') : tr('Nero'),
         onTap: () => setState(() => _penColor = InkColors.black.toARGB32()),
       ),
-      width(0.0025, 'Fine'),
-      width(0.004, 'Media'),
-      width(0.007, 'Spessa'),
-      _ToolButton(icon: Icons.undo, label: 'Annulla', onTap: ctrl.undo),
-      _ToolButton(icon: Icons.done, label: 'Fatto', onTap: _toggleDraw),
+      width(0.0025, tr('Fine')),
+      width(0.004, tr('Media')),
+      width(0.007, tr('Spessa')),
+      _ToolButton(icon: Icons.undo, label: tr('Annulla'), onTap: ctrl.undo),
+      _ToolButton(icon: Icons.done, label: tr('Fatto'), onTap: _toggleDraw),
     ]);
   }
 
   Widget _selectionBar(PlacedElement e) => _bar([
-        if (e.type.isText) _ToolButton(icon: Icons.edit_outlined, label: 'Modifica', onTap: () => _editText(e)),
+        if (e.type.isText) _ToolButton(icon: Icons.edit_outlined, label: tr('Modifica'), onTap: () => _editText(e)),
         if (e.type.hasInkColor) ...[
           _ToolButton(
             icon: Icons.circle,
             iconColor: InkColors.blue,
-            label: 'Blu',
+            label: tr('Blu'),
             onTap: () => ctrl.updateElement(e.copyWith(color: InkColors.blue.toARGB32())),
           ),
           _ToolButton(
             icon: Icons.circle,
             iconColor: InkColors.black,
-            label: 'Nero',
+            label: tr('Nero'),
             onTap: () => ctrl.updateElement(e.copyWith(color: InkColors.black.toARGB32())),
           ),
         ],
         if (ctrl.pageCount > 1)
           _ToolButton(
             icon: Icons.copy_all_outlined,
-            label: 'Su tutte',
+            label: tr('Su tutte'),
             onTap: () {
               final n = ctrl.replicateOnAllPages(e);
-              _snack(n == 0 ? 'Già presente su tutte le pagine' : 'Copiato su $n pagine');
+              _snack(n == 0 ? tr('Già presente su tutte le pagine') : tr('Copiato su {0} pagine', [n]));
             },
           ),
-        _ToolButton(icon: Icons.delete_outline, label: 'Elimina', onTap: () => ctrl.remove(e.id)),
-        _ToolButton(icon: Icons.done, label: 'Fatto', onTap: () => ctrl.select(null)),
+        _ToolButton(icon: Icons.delete_outline, label: tr('Elimina'), onTap: () => ctrl.remove(e.id)),
+        _ToolButton(icon: Icons.done, label: tr('Fatto'), onTap: () => ctrl.select(null)),
       ]);
 }
 

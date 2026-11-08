@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/l10n/l10n.dart';
 import 'drawing/draw_signature_page.dart';
 import 'import/import_signature_page.dart';
 import 'signature_model.dart';
@@ -42,12 +43,12 @@ class _NewSignatureSheetState extends State<_NewSignatureSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Nuova', style: Theme.of(context).textTheme.titleLarge),
+            Text(tr('Nuova'), style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 12),
             SegmentedButton<SignatureKind>(
-              segments: const [
-                ButtonSegment(value: SignatureKind.signature, label: Text('Firma'), icon: Icon(Icons.gesture)),
-                ButtonSegment(value: SignatureKind.initials, label: Text('Sigla'), icon: Icon(Icons.short_text)),
+              segments: [
+                ButtonSegment(value: SignatureKind.signature, label: Text(tr('Firma')), icon: const Icon(Icons.gesture)),
+                const ButtonSegment(value: SignatureKind.initials, label: Text('Sigla'), icon: Icon(Icons.short_text)),
               ],
               selected: {_kind},
               onSelectionChanged: (s) => setState(() => _kind = s.first),
@@ -55,33 +56,33 @@ class _NewSignatureSheetState extends State<_NewSignatureSheet> {
             const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.draw_outlined),
-              title: const Text('Disegna'),
-              subtitle: const Text('Con il dito, lo stilo o il mouse'),
+              title: Text(tr('Disegna')),
+              subtitle: Text(tr('Con il dito, lo stilo o il mouse')),
               onTap: () => _open(DrawSignaturePage(kind: _kind)),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Importa da foto'),
-              subtitle: const Text('Lo sfondo viene tolto in automatico'),
+              title: Text(tr('Importa da foto')),
+              subtitle: Text(tr('Lo sfondo viene tolto in automatico')),
               onTap: () => _open(ImportSignaturePage(kind: _kind, origin: ImageOrigin.gallery)),
             ),
             if (!kIsWeb)
               ListTile(
                 leading: const Icon(Icons.photo_camera_outlined),
-                title: const Text('Scatta una foto'),
-                subtitle: const Text('Firma su carta bianca e fotografa'),
+                title: Text(tr('Scatta una foto')),
+                subtitle: Text(tr('Firma su carta bianca e fotografa')),
                 onTap: () => _open(ImportSignaturePage(kind: _kind, origin: ImageOrigin.camera)),
               ),
             ListTile(
               leading: const Icon(Icons.folder_open_outlined),
-              title: const Text('Importa da file'),
-              subtitle: const Text('JPG o PNG'),
+              title: Text(tr('Importa da file')),
+              subtitle: Text(tr('JPG o PNG')),
               onTap: () => _open(ImportSignaturePage(kind: _kind, origin: ImageOrigin.file)),
             ),
             ListTile(
               leading: const Icon(Icons.keyboard_outlined),
-              title: const Text('Scrivi'),
-              subtitle: const Text('Il tuo nome in corsivo'),
+              title: Text(tr('Scrivi')),
+              subtitle: Text(tr('Il tuo nome in corsivo')),
               onTap: () => _open(TypedSignaturePage(kind: _kind)),
             ),
           ],

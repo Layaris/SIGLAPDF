@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
+import '../core/l10n/l10n.dart';
 
 /// Errore del backup con messaggio per l'utente.
 class BackupException implements Exception {
@@ -41,7 +42,7 @@ class CryptoBackup {
   /// Cifra il contenuto [payload] (che deve contenere `schema`) e restituisce i byte del file.
   Future<Uint8List> encrypt(Map<String, dynamic> payload, String password, {DateTime? now}) async {
     if (password.length < minPasswordLength) {
-      throw const BackupException('La password deve avere almeno $minPasswordLength caratteri.');
+      throw BackupException(tr('La password deve avere almeno {0} caratteri.', [minPasswordLength]));
     }
     final salt = _bytes(16);
     final nonce = _bytes(12);
@@ -70,22 +71,22 @@ class CryptoBackup {
     try {
       env = (jsonDecode(utf8.decode(bytes)) as Map).cast<String, dynamic>();
     } catch (_) {
-      throw const BackupException('Il file non è un backup di Sigla.');
+      throw BackupException(tr('Il file non è un backup di Sigla.'));
     }
-    if (env['format'] != format) throw const BackupException('Il file non è un backup di Sigla.');
+    if (env['format'] != format) throw BackupException(tr('Il file non è un backup di Sigla.'));
     final version = env['version'];
-    if (version is! int || version < 1) throw const BackupException('Versione del backup non valida.');
+    if (version is! int || version < 1) throw BackupException(tr('Versione del backup non valida.'));
     if (version > envelopeVersion) {
-      throw const BackupException('Backup creato con una versione più recente di Sigla. Aggiorna l\'app.');
+      throw BackupException(tr('Backup creato con una versione più recente di Sigla. Aggiorna l\'app.'));
     }
     try {
       final kdf = (env['kdf'] as Map).cast<String, dynamic>();
       final cipher = (env['cipher'] as Map).cast<String, dynamic>();
       if (kdf['name'] != 'pbkdf2-hmac-sha256' || cipher['name'] != 'aes-256-gcm') {
-        throw const BackupException('Formato di cifratura non supportato.');
+        throw BackupException(tr('Formato di cifratura non supportato.'));
       }
       final iterations = kdf['iterations'] as int;
-      if (iterations < 1000 || iterations > 10000000) throw const BackupException('Parametri del backup non validi.');
+      if (iterations < 1000 || iterations > 10000000) throw BackupException(tr('Parametri del backup non validi.'));
       final saltB64 = kdf['salt'] as String;
       final key = await _deriveKey(password, base64Decode(saltB64), iterations);
       final box = SecretBox(
@@ -101,9 +102,9 @@ class CryptoBackup {
     } on BackupException {
       rethrow;
     } on SecretBoxAuthenticationError {
-      throw const BackupException('Password errata o file danneggiato.');
+      throw BackupException(tr('Password errata o file danneggiato.'));
     } catch (_) {
-      throw const BackupException('Password errata o file danneggiato.');
+      throw BackupException(tr('Password errata o file danneggiato.'));
     }
   }
 }
@@ -114,13 +115,13 @@ class BackupMigrations {
     var p = Map<String, dynamic>.of(payload);
     var schema = (p['schema'] as num?)?.toInt() ?? 1;
     if (schema > CryptoBackup.currentSchema) {
-      throw const BackupException('Backup creato con una versione più recente di Sigla. Aggiorna l\'app.');
+      throw BackupException(tr('Backup creato con una versione più recente di Sigla. Aggiorna l\'app.'));
     }
     while (schema < CryptoBackup.currentSchema) {
       p = switch (schema) {
         1 => _v1toV2(p),
         2 => _v2toV3(p),
-        _ => throw const BackupException('Versione del backup non supportata.'),
+        _ => throw BackupException(tr('Versione del backup non supportata.')),
       };
       schema = p['schema'] as int;
     }

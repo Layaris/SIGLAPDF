@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/l10n/l10n.dart';
 import '../documents/documents_page.dart';
 import '../profile/profile_page.dart';
 import '../settings/settings_page.dart';
@@ -12,11 +13,12 @@ class _Destination {
   final IconData selectedIcon;
 }
 
-const _destinations = [
-  _Destination('Documenti', Icons.description_outlined, Icons.description),
-  _Destination('Firme', Icons.draw_outlined, Icons.draw),
-  _Destination('Profilo', Icons.person_outline, Icons.person),
-  _Destination('Impostazioni', Icons.settings_outlined, Icons.settings),
+// Getter: le etichette si traducono ogni volta (cambio di lingua).
+List<_Destination> get _destinations => [
+  _Destination(tr('Documenti'), Icons.description_outlined, Icons.description),
+  _Destination(tr('Firme'), Icons.draw_outlined, Icons.draw),
+  _Destination(tr('Profilo'), Icons.person_outline, Icons.person),
+  _Destination(tr('Impostazioni'), Icons.settings_outlined, Icons.settings),
 ];
 
 /// Navigazione principale: barra in basso su telefono, rail laterale su tablet e desktop.
@@ -32,11 +34,13 @@ class HomeShell extends StatefulWidget {
 }
 
 class HomeShellState extends State<HomeShell> {
-  late int _index = widget.initialIndex;
+  /// Ultima scheda aperta: resta anche quando l'app si ricostruisce (es. cambio di lingua).
+  static int? _lastIndex;
+  late int _index = _lastIndex ?? widget.initialIndex;
 
   int get index => _index;
 
-  void select(int i) => setState(() => _index = i);
+  void select(int i) => setState(() => _index = _lastIndex = i);
 
   Widget _page(int i) => switch (i) {
         0 => const DocumentsPage(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/pdf_coords.dart';
 import '../models/placed_element.dart';
@@ -237,7 +238,7 @@ class ElementView extends StatelessWidget {
             Positioned(
               right: -_handle + 6,
               top: -_handle + 6,
-              child: _ChromeButton(icon: Icons.close, tooltip: 'Elimina', onTap: onDelete, color: c.danger),
+              child: _ChromeButton(icon: Icons.close, tooltip: tr('Elimina'), onTap: onDelete, color: c.danger),
             ),
             Positioned(
               right: -_handle + 6,
@@ -250,7 +251,7 @@ class ElementView extends StatelessWidget {
                 onPanCancel: onChangeEnd,
                 child: Semantics(
                   container: true,
-                  label: 'Ridimensiona',
+                  label: tr('Ridimensiona'),
                   child: SizedBox(
                     width: _handle,
                     height: _handle,

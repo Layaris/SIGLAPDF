@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/app_services.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../signature_model.dart';
 import '../widgets/save_signature_dialog.dart';
@@ -60,7 +61,7 @@ class _TypedSignaturePageState extends State<TypedSignaturePage> {
     final isInitials = widget.kind == SignatureKind.initials;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isInitials ? 'Scrivi la sigla' : 'Scrivi la firma'),
+        title: Text(isInitials ? tr('Scrivi la sigla') : tr('Scrivi la firma')),
         actions: [
           ListenableBuilder(
             listenable: _ctrl,
@@ -68,7 +69,7 @@ class _TypedSignaturePageState extends State<TypedSignaturePage> {
               padding: const EdgeInsets.only(right: 12),
               child: FilledButton(
                 onPressed: _ctrl.text.trim().isEmpty || _saving ? null : _save,
-                child: const Text('Salva'),
+                child: Text(tr('Salva')),
               ),
             ),
           ),
@@ -83,7 +84,7 @@ class _TypedSignaturePageState extends State<TypedSignaturePage> {
               autofocus: _ctrl.text.isEmpty,
               textCapitalization: TextCapitalization.words,
               maxLength: isInitials ? 6 : 40,
-              decoration: InputDecoration(labelText: isInitials ? 'Iniziali' : 'Nome e cognome'),
+              decoration: InputDecoration(labelText: isInitials ? tr('Iniziali') : tr('Nome e cognome')),
             ),
             const SizedBox(height: 8),
             Container(
@@ -100,7 +101,7 @@ class _TypedSignaturePageState extends State<TypedSignaturePage> {
                 builder: (context, _) => FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    _ctrl.text.trim().isEmpty ? (isInitials ? 'M.R.' : 'Mario Rossi') : _ctrl.text.trim(),
+                    _ctrl.text.trim().isEmpty ? (isInitials ? 'M.R.' : tr('Mario Rossi')) : _ctrl.text.trim(),
                     style: TextStyle(
                       fontFamily: cursiveFontFamily,
                       fontSize: 64,
@@ -111,12 +112,12 @@ class _TypedSignaturePageState extends State<TypedSignaturePage> {
               ),
             ),
             const SizedBox(height: 20),
-            Text('Colore', style: Theme.of(context).textTheme.titleSmall),
+            Text(tr('Colore'), style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 8),
             SegmentedButton<Color>(
-              segments: const [
-                ButtonSegment(value: InkColors.blue, label: Text('Blu')),
-                ButtonSegment(value: InkColors.black, label: Text('Nero')),
+              segments: [
+                ButtonSegment(value: InkColors.blue, label: Text(tr('Blu'))),
+                ButtonSegment(value: InkColors.black, label: Text(tr('Nero'))),
               ],
               selected: {_color},
               onSelectionChanged: (s) => setState(() => _color = s.first),

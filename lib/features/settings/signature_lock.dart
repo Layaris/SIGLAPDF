@@ -3,6 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../core/app_services.dart';
+import '../../core/l10n/l10n.dart';
 import 'settings_repository.dart';
 
 /// Autenticazione del dispositivo (impronta, volto o PIN), sostituibile nei test.
@@ -75,7 +76,7 @@ class SignatureLock extends ChangeNotifier {
 
   Future<bool> unlock() {
     if (!isLocked) return Future.value(true);
-    return _pending ??= _auth.authenticate('Sblocca le tue firme').then((ok) {
+    return _pending ??= _auth.authenticate(tr('Sblocca le tue firme')).then((ok) {
       _pending = null;
       if (ok) {
         _unlocked = true;
@@ -95,7 +96,7 @@ class SignatureLock extends ChangeNotifier {
   Future<bool> setEnabled(bool value) async {
     if (isWeb) return false;
     if (value && !await _auth.isAvailable()) return false;
-    final ok = await _auth.authenticate(value ? 'Attiva il blocco delle firme' : 'Disattiva il blocco delle firme');
+    final ok = await _auth.authenticate(value ? tr('Attiva il blocco delle firme') : tr('Disattiva il blocco delle firme'));
     if (!ok) return false;
     await _settings.update((s) => s.copyWith(biometricLock: value));
     _unlocked = true;

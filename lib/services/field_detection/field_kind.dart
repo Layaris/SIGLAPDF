@@ -1,3 +1,4 @@
+import '../../core/l10n/l10n.dart';
 import '../../features/profile/profile_model.dart';
 
 /// Tipo di dato atteso in un campo, con il valore proposto dal profilo.
@@ -25,8 +26,11 @@ enum FieldKind {
   /// Campi a scelta: si risponde spuntando una casella.
   bool get isChoice => this == gender || this == yesNo;
 
-  const FieldKind(this.label);
-  final String label;
+  const FieldKind(this._it);
+  final String _it;
+
+  /// Etichetta nella lingua dell'interfaccia.
+  String get label => tr(_it);
 
   static FieldKind? parse(String? v) {
     if (v == null) return null;

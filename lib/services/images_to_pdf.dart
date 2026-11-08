@@ -4,11 +4,12 @@ import 'dart:ui';
 
 import 'package:image/image.dart' as img;
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import '../core/l10n/l10n.dart';
 
 /// Crea un PDF con una pagina A4 per ogni immagine (orientamento in base all'immagine).
 /// Le immagini vengono raddrizzate (EXIF), ridotte a [maxSide] px e ricodificate in JPEG.
 Future<Uint8List> imagesToPdf(List<Uint8List> images, {int maxSide = 2200, int quality = 85}) async {
-  if (images.isEmpty) throw ArgumentError('Nessuna immagine');
+  if (images.isEmpty) throw ArgumentError(tr('Nessuna immagine'));
   final doc = PdfDocument();
   try {
     doc.pageSettings.margins.all = 0;
@@ -43,7 +44,7 @@ Future<Uint8List> imagesToPdf(List<Uint8List> images, {int maxSide = 2200, int q
       );
       added++;
     }
-    if (added == 0) throw ArgumentError('Nessuna immagine valida');
+    if (added == 0) throw ArgumentError(tr('Nessuna immagine valida'));
     return Uint8List.fromList(await doc.save());
   } finally {
     doc.dispose();

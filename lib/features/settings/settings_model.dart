@@ -13,6 +13,7 @@ class AppSettings {
     this.aiModel = defaultAiModel,
     this.keepRecents = true,
     this.checkUpdates = true,
+    this.language = 'it',
   });
 
   static const defaultAiModel = 'claude-haiku-5-5';
@@ -31,6 +32,9 @@ class AppSettings {
   /// Avvisa quando su DMReleases c'è una versione nuova (solo app Android).
   final bool checkUpdates;
 
+  /// Lingua dell'interfaccia: 'it', 'en' oppure 'system'.
+  final String language;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     String? inkColor,
@@ -41,6 +45,7 @@ class AppSettings {
     String? aiModel,
     bool? keepRecents,
     bool? checkUpdates,
+    String? language,
   }) =>
       AppSettings(
         themeMode: themeMode ?? this.themeMode,
@@ -52,6 +57,7 @@ class AppSettings {
         aiModel: aiModel ?? this.aiModel,
         keepRecents: keepRecents ?? this.keepRecents,
         checkUpdates: checkUpdates ?? this.checkUpdates,
+        language: language ?? this.language,
       );
 
   /// Mappa completa (archivio locale).
@@ -70,6 +76,7 @@ class AppSettings {
         'aiModel': aiModel,
         'keepRecents': keepRecents,
         'checkUpdates': checkUpdates,
+        'language': language,
       };
 
   factory AppSettings.fromMap(Map<String, dynamic> m) {
@@ -87,6 +94,7 @@ class AppSettings {
       aiModel: (model == null || model.isEmpty) ? defaultAiModel : model,
       keepRecents: m['keepRecents'] != false,
       checkUpdates: m['checkUpdates'] != false,
+      language: const {'it', 'en', 'system'}.contains(m['language']) ? m['language'] as String : 'it',
     );
   }
 }

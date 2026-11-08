@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import '../../../core/l10n/l10n.dart';
 
 /// Chiede un testo breve. Null se annullato o vuoto.
 Future<String?> showTextInputDialog(
   BuildContext context, {
   required String title,
   String initial = '',
-  String label = 'Testo',
-  String action = 'Inserisci',
+  String? label,
+  String? action,
 }) =>
     showDialog<String>(
       context: context,
-      builder: (_) => _TextDialog(title: title, initial: initial, label: label, action: action),
+      builder: (_) => _TextDialog(title: title, initial: initial, label: label ?? tr('Testo'), action: action ?? tr('Inserisci')),
     );
 
 class _TextDialog extends StatefulWidget {
@@ -49,7 +50,7 @@ class _TextDialogState extends State<_TextDialog> {
           onSubmitted: (_) => _ok(),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annulla')),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('Annulla'))),
           FilledButton(onPressed: _ok, child: Text(widget.action)),
         ],
       );

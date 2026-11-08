@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
+import '../core/l10n/l10n.dart';
 import '../core/utils/pdf_coords.dart';
 import '../features/documents/models/placed_element.dart';
 
@@ -84,16 +85,16 @@ int _rotationOf(PdfPage p) => switch (p.rotation) {
 /// Apre un PDF con un messaggio chiaro in caso di errore.
 PdfDocument openPdf(Uint8List bytes) {
   if (bytes.length < 5 || String.fromCharCodes(bytes.take(1024)).contains('%PDF') == false) {
-    throw const PdfOpenException('Il file non è un PDF valido.');
+    throw PdfOpenException(tr('Il file non è un PDF valido.'));
   }
   try {
     return PdfDocument(inputBytes: bytes);
   } catch (e) {
     final msg = e.toString().toLowerCase();
     if (msg.contains('password') || msg.contains('encrypt')) {
-      throw const PdfOpenException('Il PDF è protetto da password. Rimuovi la protezione e riprova.');
+      throw PdfOpenException(tr('Il PDF è protetto da password. Rimuovi la protezione e riprova.'));
     }
-    throw const PdfOpenException('Impossibile aprire il PDF: il file potrebbe essere danneggiato.');
+    throw PdfOpenException(tr('Impossibile aprire il PDF: il file potrebbe essere danneggiato.'));
   }
 }
 
@@ -108,7 +109,7 @@ class PdfService {
         for (var i = 0; i < doc.pages.count; i++)
           PdfPageInfo(index: i, unrotated: doc.pages[i].size, rotation: _rotationOf(doc.pages[i])),
       ];
-      if (pages.isEmpty) throw const PdfOpenException('Il PDF non ha pagine.');
+      if (pages.isEmpty) throw PdfOpenException(tr('Il PDF non ha pagine.'));
       return PdfDocumentInfo(pages: pages, fields: _readFields(doc, pages), fingerprint: _fingerprint(doc, pages.length));
     } finally {
       doc.dispose();

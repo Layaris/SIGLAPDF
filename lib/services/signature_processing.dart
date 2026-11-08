@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
+import '../core/l10n/l10n.dart';
 
 /// Colore dell'inchiostro dopo lo scontorno: originale oppure ricolorato.
 enum InkRecolor { original, blue, black }
@@ -135,7 +136,7 @@ img.Image cropToContent(img.Image im, {int padding = 4, int minAlpha = 24}) {
 img.Image decodeForProcessing(Uint8List bytes, {int maxSide = 1600}) {
   final decoded = img.decodeImage(bytes);
   if (decoded == null) {
-    throw const SignatureProcessingException('Formato immagine non supportato. Usa JPG o PNG.');
+    throw SignatureProcessingException(tr('Formato immagine non supportato. Usa JPG o PNG.'));
   }
   var im = img.bakeOrientation(decoded);
   final side = math.max(im.width, im.height);
@@ -194,7 +195,7 @@ CutoutResult cutoutSignature(CutoutRequest req) {
 
   final cropped = cropToContent(out, padding: 6);
   if (contentBounds(cropped) == null) {
-    throw const SignatureProcessingException('Nessuna firma trovata. Prova a regolare la soglia o usa una foto più contrastata.');
+    throw SignatureProcessingException(tr('Nessuna firma trovata. Prova a regolare la soglia o usa una foto più contrastata.'));
   }
   return CutoutResult(
     png: Uint8List.fromList(img.encodePng(cropped, level: 6)),
@@ -207,7 +208,7 @@ CutoutResult cutoutSignature(CutoutRequest req) {
 /// Ritaglia un PNG già trasparente (es. firma scritta) sul contenuto.
 CutoutResult cropPngToContent(Uint8List png, {int padding = 6}) {
   final im = img.decodePng(png);
-  if (im == null) throw const SignatureProcessingException('Immagine non valida.');
+  if (im == null) throw SignatureProcessingException(tr('Immagine non valida.'));
   final rgba = im.numChannels == 4 ? im : im.convert(numChannels: 4);
   final cropped = cropToContent(rgba, padding: padding);
   return CutoutResult(

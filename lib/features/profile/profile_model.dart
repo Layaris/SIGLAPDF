@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../../core/l10n/l10n.dart';
 
 /// Campo personalizzato chiave/valore.
 @immutable
@@ -32,8 +33,11 @@ enum ProfileField {
   email('Email'),
   gender('Sesso');
 
-  const ProfileField(this.label);
-  final String label;
+  const ProfileField(this._it);
+  final String _it;
+
+  /// Etichetta nella lingua dell'interfaccia.
+  String get label => tr(_it);
 }
 
 /// Profilo dati per l'autocompilazione.
@@ -63,10 +67,10 @@ class Profile {
 
   /// Voci da mostrare per l'inserimento rapido: solo quelle compilate.
   List<(String label, String value)> get filledEntries => [
-        if (fullName.isNotEmpty) ('Nome e cognome', fullName),
+        if (fullName.isNotEmpty) (tr('Nome e cognome'), fullName),
         for (final f in ProfileField.values)
           if (this[f].isNotEmpty && f != ProfileField.gender) (f.label, this[f]),
-        if (this[ProfileField.address].isNotEmpty && this[ProfileField.city].isNotEmpty) ('Indirizzo completo', fullAddress),
+        if (this[ProfileField.address].isNotEmpty && this[ProfileField.city].isNotEmpty) (tr('Indirizzo completo'), fullAddress),
         for (final c in custom)
           if (c.key.isNotEmpty && c.value.isNotEmpty) (c.key, c.value),
       ];
@@ -130,7 +134,7 @@ class NamedProfile {
     final label = (m['label'] as String?)?.trim();
     return NamedProfile(
       id: id,
-      label: label == null || label.isEmpty ? 'Profilo' : label,
+      label: label == null || label.isEmpty ? tr('Profilo') : label,
       profile: Profile.fromMap(data.cast<String, dynamic>()),
     );
   }

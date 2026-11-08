@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/app_services.dart';
+import '../../core/l10n/l10n.dart';
 import '../../services/crypto_backup.dart';
 import 'backup_service.dart';
 
@@ -35,11 +36,11 @@ class _PasswordDialogState extends State<_PasswordDialog> {
   void _ok() {
     if (widget.confirm) {
       if (_a.text.length < CryptoBackup.minPasswordLength) {
-        setState(() => _error = 'Almeno ${CryptoBackup.minPasswordLength} caratteri.');
+        setState(() => _error = tr('Almeno {0} caratteri.', [CryptoBackup.minPasswordLength]));
         return;
       }
       if (_a.text != _b.text) {
-        setState(() => _error = 'Le password non coincidono.');
+        setState(() => _error = tr('Le password non coincidono.'));
         return;
       }
     } else if (_a.text.isEmpty) {
@@ -50,23 +51,23 @@ class _PasswordDialogState extends State<_PasswordDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: Text(widget.confirm ? 'Proteggi il backup' : 'Password del backup'),
+        title: Text(widget.confirm ? tr('Proteggi il backup') : tr('Password del backup')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (widget.confirm)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12),
-                child: Text('Senza questa password il backup non si può aprire. Conservala con cura.'),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(tr('Senza questa password il backup non si può aprire. Conservala con cura.')),
               ),
             TextField(
               controller: _a,
               obscureText: _obscure,
               autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Password',
+                labelText: tr('Password'),
                 suffixIcon: IconButton(
-                  tooltip: _obscure ? 'Mostra' : 'Nascondi',
+                  tooltip: _obscure ? tr('Mostra') : tr('Nascondi'),
                   icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
                   onPressed: () => setState(() => _obscure = !_obscure),
                 ),
@@ -78,7 +79,7 @@ class _PasswordDialogState extends State<_PasswordDialog> {
               TextField(
                 controller: _b,
                 obscureText: _obscure,
-                decoration: const InputDecoration(labelText: 'Ripeti la password'),
+                decoration: InputDecoration(labelText: tr('Ripeti la password')),
                 onSubmitted: (_) => _ok(),
               ),
             ],
@@ -90,8 +91,8 @@ class _PasswordDialogState extends State<_PasswordDialog> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
-          FilledButton(onPressed: _ok, child: Text(widget.confirm ? 'Esporta' : 'Apri')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Annulla'))),
+          FilledButton(onPressed: _ok, child: Text(widget.confirm ? tr('Esporta') : tr('Apri'))),
         ],
       );
 }
@@ -122,13 +123,13 @@ Future<void> exportBackupFlow(BuildContext context) async {
   final service = BackupService(services);
   try {
     late final Uint8List bytes;
-    await _withProgress(context, 'Cifro il backup…', () async => bytes = await service.export(password));
+    await _withProgress(context, tr('Cifro il backup…'), () async => bytes = await service.export(password));
     final ok = await services.files.save(fileName: service.fileName(), bytes: bytes, mimeType: 'application/octet-stream');
-    if (ok) messenger.showSnackBar(const SnackBar(content: Text('Backup salvato')));
+    if (ok) messenger.showSnackBar(SnackBar(content: Text(tr('Backup salvato'))));
   } on BackupException catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
   } catch (_) {
-    messenger.showSnackBar(const SnackBar(content: Text('Backup non riuscito.')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Backup non riuscito.'))));
   }
 }
 
@@ -142,15 +143,14 @@ Future<void> importBackupFlow(BuildContext context) async {
   final replace = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Come importare?'),
-      content: const Text(
-        'Unisci aggiunge le firme mancanti e completa i campi vuoti del profilo.\n'
-        'Sostituisci cancella firme, profilo e impostazioni di questo dispositivo e usa quelli del backup.',
+      title: Text(tr('Come importare?')),
+      content: Text(
+        tr('Unisci aggiunge le firme mancanti e completa i campi vuoti del profilo.\nSostituisci cancella firme, profilo e impostazioni di questo dispositivo e usa quelli del backup.'),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
-        OutlinedButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sostituisci')),
-        FilledButton(onPressed: () => Navigator.pop(context, false), child: const Text('Unisci')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Annulla'))),
+        OutlinedButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Sostituisci'))),
+        FilledButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Unisci'))),
       ],
     ),
   );
@@ -161,15 +161,15 @@ Future<void> importBackupFlow(BuildContext context) async {
     late final ImportSummary summary;
     await _withProgress(
       context,
-      'Apro il backup…',
+      tr('Apro il backup…'),
       () async => summary = await BackupService(services).import(picked.bytes, password, replace: replace),
     );
     messenger.showSnackBar(SnackBar(
-      content: Text(summary.signatures == 1 ? 'Backup importato: 1 firma' : 'Backup importato: ${summary.signatures} firme'),
+      content: Text(summary.signatures == 1 ? tr('Backup importato: 1 firma') : tr('Backup importato: {0} firme', [summary.signatures])),
     ));
   } on BackupException catch (e) {
     messenger.showSnackBar(SnackBar(content: Text(e.message)));
   } catch (_) {
-    messenger.showSnackBar(const SnackBar(content: Text('Importazione non riuscita.')));
+    messenger.showSnackBar(SnackBar(content: Text(tr('Importazione non riuscita.'))));
   }
 }

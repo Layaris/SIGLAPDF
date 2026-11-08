@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../core/app_services.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/signature_processing.dart';
 import '../signature_model.dart';
@@ -73,7 +74,7 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
           bytes = await x?.readAsBytes();
       }
     } catch (e) {
-      _error = 'Impossibile aprire l\'immagine.';
+      _error = tr('Impossibile aprire l\'immagine.');
     }
     if (!mounted) return;
     if (bytes == null) {
@@ -111,7 +112,7 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
     } on SignatureProcessingException catch (e) {
       if (mounted && job == _job) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted && job == _job) setState(() => _error = 'Immagine non valida.');
+      if (mounted && job == _job) setState(() => _error = tr('Immagine non valida.'));
     } finally {
       if (mounted && job == _job) setState(() => _busy = false);
     }
@@ -137,11 +138,11 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
     final c = AppColors.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Importa da immagine'),
+        title: Text(tr('Importa da immagine')),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: FilledButton(onPressed: _result != null && !_busy ? _save : null, child: const Text('Salva')),
+            child: FilledButton(onPressed: _result != null && !_busy ? _save : null, child: Text(tr('Salva'))),
           ),
         ],
       ),
@@ -172,7 +173,7 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
                                       _result!.png,
                                       gaplessPlayback: true,
                                       fit: BoxFit.contain,
-                                      semanticLabel: 'Anteprima della firma scontornata',
+                                      semanticLabel: tr('Anteprima della firma scontornata'),
                                     ),
                         ),
                       ),
@@ -182,14 +183,14 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Text('Soglia', style: Theme.of(context).textTheme.titleSmall),
+                      Text(tr('Soglia'), style: Theme.of(context).textTheme.titleSmall),
                       const Spacer(),
                       TextButton(
                         onPressed: () {
                           setState(() => _threshold = null);
                           _process();
                         },
-                        child: const Text('Automatica'),
+                        child: Text(tr('Automatica')),
                       ),
                     ],
                   ),
@@ -199,7 +200,7 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
                     max: 240,
                     divisions: 220,
                     label: '${_threshold ?? 128}',
-                    semanticFormatterCallback: (v) => 'Soglia ${v.round()}',
+                    semanticFormatterCallback: (v) => tr('Soglia {0}', [v.round()]),
                     onChanged: _source == null
                         ? null
                         : (v) {
@@ -208,17 +209,17 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
                           },
                   ),
                   Text(
-                    'Sposta a destra se la firma è troppo chiara, a sinistra se resta lo sfondo.',
+                    tr('Sposta a destra se la firma è troppo chiara, a sinistra se resta lo sfondo.'),
                     style: TextStyle(color: c.secondary, fontSize: 13),
                   ),
                   const SizedBox(height: 20),
-                  Text('Colore', style: Theme.of(context).textTheme.titleSmall),
+                  Text(tr('Colore'), style: Theme.of(context).textTheme.titleSmall),
                   const SizedBox(height: 8),
                   SegmentedButton<InkRecolor>(
-                    segments: const [
-                      ButtonSegment(value: InkRecolor.original, label: Text('Originale')),
-                      ButtonSegment(value: InkRecolor.blue, label: Text('Blu')),
-                      ButtonSegment(value: InkRecolor.black, label: Text('Nero')),
+                    segments: [
+                      ButtonSegment(value: InkRecolor.original, label: Text(tr('Originale'))),
+                      ButtonSegment(value: InkRecolor.blue, label: Text(tr('Blu'))),
+                      ButtonSegment(value: InkRecolor.black, label: Text(tr('Nero'))),
                     ],
                     selected: {_recolor},
                     onSelectionChanged: (s) {
@@ -230,11 +231,11 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
                   OutlinedButton.icon(
                     onPressed: _pick,
                     icon: const Icon(Icons.image_outlined),
-                    label: const Text('Scegli un\'altra immagine'),
+                    label: Text(tr('Scegli un\'altra immagine')),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Consiglio: firma su carta bianca con una penna scura e fotografa con buona luce.',
+                    tr('Consiglio: firma su carta bianca con una penna scura e fotografa con buona luce.'),
                     style: TextStyle(color: c.secondary, fontSize: 13),
                   ),
                 ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../signature_model.dart';
 
 /// Chiede il nome della firma. Restituisce null se l'utente annulla.
@@ -8,12 +9,12 @@ Future<String?> showSaveSignatureDialog(
   required SignatureKind kind,
   required int existingCount,
   String? initial,
-  String title = 'Dai un nome',
+  String? title,
 }) {
   final suggested = initial ?? (existingCount == 0 ? kind.label : '${kind.label} ${existingCount + 1}');
   return showDialog<String>(
     context: context,
-    builder: (context) => _NameDialog(title: title, initial: suggested),
+    builder: (context) => _NameDialog(title: title ?? tr('Dai un nome'), initial: suggested),
   );
 }
 
@@ -50,12 +51,12 @@ class _NameDialogState extends State<_NameDialog> {
           autofocus: true,
           maxLength: 40,
           textCapitalization: TextCapitalization.sentences,
-          decoration: const InputDecoration(labelText: 'Nome'),
+          decoration: InputDecoration(labelText: tr('Nome')),
           onSubmitted: (_) => _ok(),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Annulla')),
-          FilledButton(onPressed: _ok, child: const Text('Salva')),
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('Annulla'))),
+          FilledButton(onPressed: _ok, child: Text(tr('Salva'))),
         ],
       );
 }

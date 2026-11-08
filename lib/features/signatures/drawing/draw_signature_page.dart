@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/app_services.dart';
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../signature_model.dart';
 import '../widgets/save_signature_dialog.dart';
@@ -102,13 +103,13 @@ class _DrawSignaturePageState extends State<DrawSignaturePage> {
     final isInitials = widget.kind == SignatureKind.initials;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isInitials ? 'Disegna la sigla' : 'Disegna la firma'),
+        title: Text(isInitials ? tr('Disegna la sigla') : tr('Disegna la firma')),
         actions: [
           ListenableBuilder(
             listenable: _drawing,
             builder: (context, _) => Padding(
               padding: const EdgeInsets.only(right: 12),
-              child: FilledButton(onPressed: _drawing.isEmpty || _saving ? null : _save, child: const Text('Salva')),
+              child: FilledButton(onPressed: _drawing.isEmpty || _saving ? null : _save, child: Text(tr('Salva'))),
             ),
           ),
         ],
@@ -131,7 +132,7 @@ class _DrawSignaturePageState extends State<DrawSignaturePage> {
                         width: w,
                         height: h,
                         child: Semantics(
-                          label: 'Area di disegno della firma',
+                          label: tr('Area di disegno della firma'),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(16),
                             child: DecoratedBox(
@@ -214,13 +215,13 @@ class _Toolbar extends StatelessWidget {
               children: [
                 _ColorDot(
                   color: InkColors.blue,
-                  label: 'Blu',
+                  label: tr('Blu'),
                   selected: color == InkColors.blue,
                   onTap: () => onColor(InkColors.blue),
                 ),
                 _ColorDot(
                   color: InkColors.black,
-                  label: 'Nero',
+                  label: tr('Nero'),
                   selected: color == InkColors.black,
                   onTap: () => onColor(InkColors.black),
                 ),
@@ -233,8 +234,8 @@ class _Toolbar extends StatelessWidget {
                       value: width,
                       min: 1.5,
                       max: 7,
-                      label: 'Spessore',
-                      semanticFormatterCallback: (v) => 'Spessore ${v.toStringAsFixed(1)}',
+                      label: tr('Spessore'),
+                      semanticFormatterCallback: (v) => tr('Spessore {0}', [v.toStringAsFixed(1)]),
                       onChanged: onWidth,
                     ),
                   ),
@@ -245,12 +246,12 @@ class _Toolbar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  tooltip: 'Annulla',
+                  tooltip: tr('Annulla'),
                   onPressed: drawing.canUndo ? drawing.undo : null,
                   icon: const Icon(Icons.undo),
                 ),
                 IconButton(
-                  tooltip: 'Ripeti',
+                  tooltip: tr('Ripeti'),
                   onPressed: drawing.canRedo ? drawing.redo : null,
                   icon: const Icon(Icons.redo),
                 ),
@@ -258,7 +259,7 @@ class _Toolbar extends StatelessWidget {
                 TextButton.icon(
                   onPressed: drawing.isEmpty ? null : drawing.clear,
                   icon: const Icon(Icons.delete_outline),
-                  label: const Text('Cancella'),
+                  label: Text(tr('Cancella')),
                 ),
               ],
             ),
@@ -283,7 +284,7 @@ class _ColorDot extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selected,
-      label: 'Inchiostro $label',
+      label: tr('Inchiostro {0}', [label]),
       child: InkWell(
         onTap: onTap,
         customBorder: const CircleBorder(),
@@ -326,9 +327,9 @@ class _InkPainter extends CustomPainter {
     );
     if (showHint) {
       final tp = TextPainter(
-        text: const TextSpan(
-          text: 'Firma qui',
-          style: TextStyle(color: Color(0xFF9AA1AD), fontSize: 16),
+        text: TextSpan(
+          text: tr('Firma qui'),
+          style: const TextStyle(color: Color(0xFF9AA1AD), fontSize: 16),
         ),
         textDirection: TextDirection.ltr,
       )..layout();

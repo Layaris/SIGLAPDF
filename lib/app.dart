@@ -1,7 +1,10 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/app_services.dart';
+import 'core/l10n/l10n.dart';
 import 'core/theme/app_theme.dart';
 import 'features/home/home_shell.dart';
 
@@ -39,18 +42,27 @@ class _SiglaAppState extends State<SiglaApp> {
       services: services,
       child: ListenableBuilder(
         listenable: services.settings,
-        builder: (context, _) => MaterialApp(
-          title: 'Sigla',
-          navigatorKey: widget.navigatorKey,
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.light(),
-          darkTheme: AppTheme.dark(),
-          themeMode: services.settings.value.themeMode,
-          locale: const Locale('it', 'IT'),
-          supportedLocales: const [Locale('it', 'IT')],
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          home: const HomeShell(),
-        ),
+        builder: (context, _) {
+          // Lingua: cambiarla ricostruisce tutta l'app (chiave sul MaterialApp).
+          final lang = L10n.resolve(
+            services.settings.value.language,
+            ui.PlatformDispatcher.instance.locale.languageCode,
+          );
+          L10n.lang = lang;
+          return MaterialApp(
+            key: ValueKey('app-$lang'),
+            title: 'Sigla',
+            navigatorKey: widget.navigatorKey,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(),
+            themeMode: services.settings.value.themeMode,
+            locale: lang == 'en' ? const Locale('en') : const Locale('it', 'IT'),
+            supportedLocales: const [Locale('it', 'IT'), Locale('en')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            home: const HomeShell(),
+          );
+        },
       ),
     );
   }

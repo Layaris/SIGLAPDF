@@ -2,6 +2,7 @@ import 'dart:ui' show Offset;
 
 import 'package:flutter/foundation.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/utils/pdf_coords.dart';
 
 /// Tipi di elemento posizionabile sopra la pagina.
@@ -16,8 +17,11 @@ enum ElementType {
   ink('Tratto a mano'),
   highlight('Evidenziatore');
 
-  const ElementType(this.label);
-  final String label;
+  const ElementType(this._it);
+  final String _it;
+
+  /// Etichetta nella lingua dell'interfaccia.
+  String get label => tr(_it);
 
   bool get isImage => this == signature || this == initials || this == signedDate;
   bool get isText => this == text || this == date;

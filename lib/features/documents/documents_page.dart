@@ -5,6 +5,7 @@ import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_services.dart';
+import '../../core/l10n/l10n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/ink_illustrations.dart';
 import '../../core/widgets/page_frame.dart';
@@ -33,7 +34,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
       await openPdfEditor(context, name: picked.name, bytes: picked.bytes);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossibile aprire il file.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Impossibile aprire il file.'))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -52,12 +53,12 @@ class _DocumentsPageState extends State<DocumentsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Firma o compila\nun PDF', style: t.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.1)),
+              Text(tr('Firma o compila\nun PDF'), style: t.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.6, height: 1.1)),
               const SizedBox(height: 6),
               SizedBox(height: 34, width: 190, child: SignatureFlourish(color: c.accent, strokeWidth: 2.6)),
               const SizedBox(height: 10),
               Text(
-                'Aggiungi firma, sigla, testo e data, compila i moduli dal tuo profilo ed esporta il PDF.',
+                tr('Aggiungi firma, sigla, testo e data, compila i moduli dal tuo profilo ed esporta il PDF.'),
                 style: t.bodyMedium?.copyWith(color: c.secondary, height: 1.4),
               ),
             ],
@@ -68,7 +69,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
       ],
     );
     return Scaffold(
-      appBar: AppBar(title: const Text('Documenti')),
+      appBar: AppBar(title: Text(tr('Documenti'))),
       body: PageFrame(
         maxWidth: 680,
         child: ListView(
@@ -79,8 +80,8 @@ class _DocumentsPageState extends State<DocumentsPage> {
             const SizedBox(height: 28),
             _ActionCard(
               icon: Icons.file_open_outlined,
-              title: 'Apri PDF',
-              subtitle: 'Scegli un file dal dispositivo',
+              title: tr('Apri PDF'),
+              subtitle: tr('Scegli un file dal dispositivo'),
               primary: true,
               busy: _busy,
               onTap: _openPdf,
@@ -88,7 +89,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
             ...extraActions(context),
             _RecentsSection(onOpen: (d) => openPdfEditor(context, name: d.name, bytes: d.pdf)),
             const SizedBox(height: 20),
-            Text('Come funziona', style: t.titleMedium),
+            Text(tr('Come funziona'), style: t.titleMedium),
             const SizedBox(height: 12),
             const _Steps(),
             const SizedBox(height: 20),
@@ -104,7 +105,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Tutto resta su questo dispositivo: nessun account, nessun cloud.',
+                      tr('Tutto resta su questo dispositivo: nessun account, nessun cloud.'),
                       style: TextStyle(color: c.ink, height: 1.3),
                     ),
                   ),
@@ -136,7 +137,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
       await openPdfEditor(context, name: '$prefix-${_stamp()}.pdf', bytes: pdf);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossibile creare il PDF dalle immagini.')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Impossibile creare il PDF dalle immagini.'))));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -147,15 +148,15 @@ class _DocumentsPageState extends State<DocumentsPage> {
         if (_scanner.isSupported)
           _ActionCard(
             icon: Icons.document_scanner_outlined,
-            title: 'Scansiona documento',
-            subtitle: 'Foto con correzione della prospettiva',
+            title: tr('Scansiona documento'),
+            subtitle: tr('Foto con correzione della prospettiva'),
             busy: _busy,
             onTap: () => _fromImages(_scanner.scan, 'scansione'),
           ),
         _ActionCard(
           icon: Icons.photo_library_outlined,
-          title: 'Da immagini',
-          subtitle: 'Trasforma foto o immagini in un PDF',
+          title: tr('Da immagini'),
+          subtitle: tr('Trasforma foto o immagini in un PDF'),
           busy: _busy,
           onTap: () => _fromImages(() async {
             final files = await AppScope.of(context).files.pickImages();
@@ -232,10 +233,10 @@ class _Steps extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = AppColors.of(context);
-    const steps = [
-      ('Apri', 'un PDF, una scansione o delle foto'),
-      ('Firma', 'e compila: trascina, ridimensiona, conferma'),
-      ('Esporta', 'il PDF e salvalo o condividilo'),
+    final steps = [
+      (tr('Apri'), tr('un PDF, una scansione o delle foto')),
+      (tr('Firma'), tr('e compila: trascina, ridimensiona, conferma')),
+      (tr('Esporta'), tr('il PDF e salvalo o condividilo')),
     ];
     return Column(
       children: [
@@ -275,7 +276,7 @@ class _RecentsSection extends StatelessWidget {
         if (repo.isEmpty || !services.settings.value.keepRecents) return const SizedBox.shrink();
         final c = AppColors.of(context);
         final t = Theme.of(context).textTheme;
-        final fmt = DateFormat('d MMM yyyy, HH:mm', 'it_IT');
+        final fmt = DateFormat(tr('d MMM yyyy, HH:mm'), 'it_IT');
         return Padding(
           padding: const EdgeInsets.only(top: 20),
           child: Column(
@@ -283,23 +284,23 @@ class _RecentsSection extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Expanded(child: Semantics(header: true, child: Text('Recenti', style: t.titleMedium))),
+                  Expanded(child: Semantics(header: true, child: Text(tr('Recenti'), style: t.titleMedium))),
                   TextButton(
                     onPressed: () async {
                       final ok = await showDialog<bool>(
                         context: context,
                         builder: (context) => AlertDialog(
-                          title: const Text('Cancellare i recenti?'),
-                          content: const Text('I PDF esportati vengono tolti da questo elenco. I file salvati altrove restano.'),
+                          title: Text(tr('Cancellare i recenti?')),
+                          content: Text(tr('I PDF esportati vengono tolti da questo elenco. I file salvati altrove restano.')),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
-                            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancella')),
+                            TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Annulla'))),
+                            FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(tr('Cancella'))),
                           ],
                         ),
                       );
                       if (ok == true) await repo.clear();
                     },
-                    child: const Text('Cancella'),
+                    child: Text(tr('Cancella')),
                   ),
                 ],
               ),
@@ -320,11 +321,11 @@ class _RecentsSection extends StatelessWidget {
                         ),
                         title: Text(d.name, maxLines: 1, overflow: TextOverflow.ellipsis),
                         subtitle: Text(
-                          '${fmt.format(d.savedAt)} · ${d.pageCount} ${d.pageCount == 1 ? 'pagina' : 'pagine'}',
+                          '${fmt.format(d.savedAt)} · ${d.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [d.pageCount])}',
                           style: TextStyle(color: c.secondary, fontSize: 13),
                         ),
                         trailing: PopupMenuButton<String>(
-                          tooltip: 'Opzioni',
+                          tooltip: tr('Opzioni'),
                           onSelected: (a) async {
                             switch (a) {
                               case 'open':
@@ -337,11 +338,11 @@ class _RecentsSection extends StatelessWidget {
                                 await repo.remove(d.id);
                             }
                           },
-                          itemBuilder: (_) => const [
-                            PopupMenuItem(value: 'open', child: Text('Apri')),
-                            PopupMenuItem(value: 'share', child: Text('Condividi')),
-                            PopupMenuItem(value: 'save', child: Text('Salva')),
-                            PopupMenuItem(value: 'delete', child: Text('Togli dai recenti')),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(value: 'open', child: Text(tr('Apri'))),
+                            PopupMenuItem(value: 'share', child: Text(tr('Condividi'))),
+                            PopupMenuItem(value: 'save', child: Text(tr('Salva'))),
+                            PopupMenuItem(value: 'delete', child: Text(tr('Togli dai recenti'))),
                           ],
                         ),
                       ),
@@ -381,14 +382,14 @@ class _UpdateBanner extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Nuova versione di Sigla${u.version.isEmpty ? '' : ' ${u.version}'} (build ${u.build})',
+                    tr('Nuova versione di Sigla {0} (build {1})', [u.version, u.build]).replaceAll('  ', ' '),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                TextButton(onPressed: updates.dismiss, child: const Text('Non ora')),
+                TextButton(onPressed: updates.dismiss, child: Text(tr('Non ora'))),
                 FilledButton(
                   onPressed: () => launchUrl(Uri.parse(u.url), mode: LaunchMode.externalApplication),
-                  child: const Text('Scarica'),
+                  child: Text(tr('Scarica')),
                 ),
               ],
             ),

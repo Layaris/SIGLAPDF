@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/storage/key_value_store.dart';
 import '../models/placed_element.dart';
 
@@ -48,7 +49,7 @@ class FormTemplate {
     final raw = m['elements'];
     return FormTemplate(
       id: m['id'] as String,
-      name: (m['name'] as String?)?.trim().isNotEmpty == true ? (m['name'] as String).trim() : 'Modello',
+      name: (m['name'] as String?)?.trim().isNotEmpty == true ? (m['name'] as String).trim() : tr('Modello'),
       pageCount: (m['pageCount'] as num?)?.toInt() ?? 1,
       createdAt: DateTime.tryParse(m['createdAt'] as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
       fingerprint: m['fingerprint'] as String?,
@@ -92,7 +93,7 @@ class TemplatesRepository extends ChangeNotifier {
     }
     final t = FormTemplate(
       id: _uuid.v4(),
-      name: name.trim().isEmpty ? 'Modello' : name.trim(),
+      name: name.trim().isEmpty ? tr('Modello') : name.trim(),
       pageCount: pageCount,
       createdAt: DateTime.now(),
       fingerprint: fingerprint,

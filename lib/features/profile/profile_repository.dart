@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/l10n/l10n.dart';
 import '../../core/storage/key_value_store.dart';
 import 'profile_model.dart';
 
@@ -17,7 +18,7 @@ class ProfileRepository extends ChangeNotifier {
     if (_profiles.isEmpty) {
       // Prima versione: un solo profilo sotto la chiave "profile".
       final legacy = Profile.fromMap(asStringMap(_store.get(_legacyKey)));
-      _profiles.add(NamedProfile(id: _uuid.v4(), label: 'Io', profile: legacy));
+      _profiles.add(NamedProfile(id: _uuid.v4(), label: tr('Io'), profile: legacy));
     }
     final active = _store.get(_activeKey);
     _activeId = _profiles.any((p) => p.id == active) ? active! as String : _profiles.first.id;
@@ -64,7 +65,7 @@ class ProfileRepository extends ChangeNotifier {
 
   /// Crea un profilo vuoto e lo rende attivo.
   Future<NamedProfile> addProfile(String label) async {
-    final p = NamedProfile(id: _uuid.v4(), label: label.trim().isEmpty ? 'Profilo ${_profiles.length + 1}' : label.trim(), profile: const Profile());
+    final p = NamedProfile(id: _uuid.v4(), label: label.trim().isEmpty ? tr('Profilo {0}', [_profiles.length + 1]) : label.trim(), profile: const Profile());
     _profiles.add(p);
     _activeId = p.id;
     notifyListeners();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_services.dart';
+import '../../core/l10n/l10n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/ink_illustrations.dart';
@@ -27,7 +28,7 @@ class SignaturesPage extends StatelessWidget {
 
   Widget _scaffold(BuildContext context, SignatureRepository repo) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Firme')),
+      appBar: AppBar(title: Text(tr('Firme'))),
       floatingActionButton: ListenableBuilder(
         listenable: repo,
         builder: (context, _) => repo.isEmpty
@@ -35,7 +36,7 @@ class SignaturesPage extends StatelessWidget {
             : FloatingActionButton.extended(
                 onPressed: () => showNewSignatureSheet(context),
                 icon: const Icon(Icons.add),
-                label: const Text('Nuova firma'),
+                label: Text(tr('Nuova firma')),
               ),
       ),
       body: ListenableBuilder(
@@ -55,17 +56,17 @@ class SignaturesPage extends StatelessWidget {
                 ),
                 child: const SignatureFlourish(),
               ),
-              title: 'Crea la tua firma',
-              message: 'Disegnala, importala da una foto o scrivila. Resta solo su questo dispositivo.',
+              title: tr('Crea la tua firma'),
+              message: tr('Disegnala, importala da una foto o scrivila. Resta solo su questo dispositivo.'),
               actions: [
                 FilledButton.icon(
                   onPressed: () => showNewSignatureSheet(context),
                   icon: const Icon(Icons.add),
-                  label: const Text('Nuova firma'),
+                  label: Text(tr('Nuova firma')),
                 ),
                 OutlinedButton(
                   onPressed: () => showNewSignatureSheet(context, initialKind: SignatureKind.initials),
-                  child: const Text('Nuova sigla'),
+                  child: Text(tr('Nuova sigla')),
                 ),
               ],
             );
@@ -86,8 +87,8 @@ class _Library extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final columns = width >= 1100 ? 3 : (width >= 640 ? 2 : 1);
     final sections = [
-      (SignatureKind.signature, 'Firme', repo.ofKind(SignatureKind.signature)),
-      (SignatureKind.initials, 'Sigle', repo.ofKind(SignatureKind.initials)),
+      (SignatureKind.signature, tr('Firme'), repo.ofKind(SignatureKind.signature)),
+      (SignatureKind.initials, tr('Sigle'), repo.ofKind(SignatureKind.initials)),
     ];
     return CustomScrollView(
       slivers: [
@@ -101,7 +102,7 @@ class _Library extends StatelessWidget {
                   TextButton.icon(
                     onPressed: () => showNewSignatureSheet(context, initialKind: kind),
                     icon: const Icon(Icons.add, size: 20),
-                    label: Text(kind == SignatureKind.initials ? 'Nuova sigla' : 'Nuova firma'),
+                    label: Text(kind == SignatureKind.initials ? tr('Nuova sigla') : tr('Nuova firma')),
                   ),
                 ],
               ),
@@ -113,8 +114,8 @@ class _Library extends StatelessWidget {
               sliver: SliverToBoxAdapter(
                 child: Text(
                   kind == SignatureKind.initials
-                      ? 'Nessuna sigla. Serve per siglare tutte le pagine in un tocco.'
-                      : 'Nessuna firma.',
+                      ? tr('Nessuna sigla. Serve per siglare tutte le pagine in un tocco.')
+                      : tr('Nessuna firma.'),
                   style: TextStyle(color: AppColors.of(context).secondary),
                 ),
               ),
@@ -158,7 +159,7 @@ class SignatureCard extends StatelessWidget {
           kind: signature.kind,
           existingCount: 0,
           initial: signature.name,
-          title: 'Rinomina',
+          title: tr('Rinomina'),
         );
         if (name != null) await repo.rename(signature.id, name);
       case _Action.makeDefault:
@@ -167,14 +168,14 @@ class SignatureCard extends StatelessWidget {
         final ok = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text('Eliminare "${signature.name}"?'),
+            title: Text(tr('Eliminare "{0}"?', [signature.name])),
             content: const Text("L'eliminazione non si può annullare."),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annulla')),
+              TextButton(onPressed: () => Navigator.pop(context, false), child: Text(tr('Annulla'))),
               FilledButton(
                 style: FilledButton.styleFrom(backgroundColor: AppColors.of(context).danger),
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Elimina'),
+                child: Text(tr('Elimina')),
               ),
             ],
           ),
@@ -213,17 +214,17 @@ class SignatureCard extends StatelessWidget {
                       children: [
                         Icon(Icons.check, size: 14, color: c.success),
                         const SizedBox(width: 4),
-                        Text('Predefinita', style: TextStyle(color: c.success, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        Text(tr('Predefinita'), style: TextStyle(color: c.success, fontSize: 12.5, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
                 PopupMenuButton<_Action>(
-                  tooltip: 'Opzioni',
+                  tooltip: tr('Opzioni'),
                   onSelected: (a) => _onAction(context, a),
                   itemBuilder: (_) => [
-                    const PopupMenuItem(value: _Action.rename, child: Text('Rinomina')),
-                    if (!signature.isDefault) const PopupMenuItem(value: _Action.makeDefault, child: Text('Imposta predefinita')),
-                    const PopupMenuItem(value: _Action.delete, child: Text('Elimina')),
+                    PopupMenuItem(value: _Action.rename, child: Text(tr('Rinomina'))),
+                    if (!signature.isDefault) PopupMenuItem(value: _Action.makeDefault, child: Text(tr('Imposta predefinita'))),
+                    PopupMenuItem(value: _Action.delete, child: Text(tr('Elimina'))),
                   ],
                 ),
               ],
@@ -241,13 +242,13 @@ class _Locked extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Firme')),
+        appBar: AppBar(title: Text(tr('Firme'))),
         body: EmptyState(
           icon: Icons.lock_outline,
-          title: 'Firme protette',
-          message: 'Sblocca con impronta, volto o PIN per vedere e usare le tue firme.',
+          title: tr('Firme protette'),
+          message: tr('Sblocca con impronta, volto o PIN per vedere e usare le tue firme.'),
           actions: [
-            FilledButton.icon(onPressed: onUnlock, icon: const Icon(Icons.lock_open), label: const Text('Sblocca')),
+            FilledButton.icon(onPressed: onUnlock, icon: const Icon(Icons.lock_open), label: Text(tr('Sblocca'))),
           ],
         ),
       );

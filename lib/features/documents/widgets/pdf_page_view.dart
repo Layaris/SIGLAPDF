@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
+import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../editor/page_renderer.dart';
 
@@ -83,7 +84,7 @@ class _PdfPageImageState extends State<PdfPageImage> {
                   children: [
                     Icon(Icons.broken_image_outlined, color: c.secondary),
                     const SizedBox(height: 8),
-                    Text('Anteprima non disponibile', style: TextStyle(color: c.secondary)),
+                    Text(tr('Anteprima non disponibile'), style: TextStyle(color: c.secondary)),
                   ],
                 ),
               )
