@@ -27,7 +27,10 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>it</string>
+		<string>en</string>
 	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Sigla usa la fotocamera per scansionare documenti e fotografare la tua firma.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

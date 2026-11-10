@@ -195,6 +195,18 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
   lette dal file al massimo `maxIterations` (2 000 000). Export e "Sostituisci" chiedono lo sblocco firme.
 - **Recenti**: oltre a 12 file, tetto totale di 80 MB (la box Hive è caricata tutta in memoria).
 - **PageRenderer**: un render in corso si riusa solo se abbastanza nitido, altrimenti se ne accoda uno.
+- **Riconoscimento campi (audit 2)**: etichette "bloccanti" (kind null) per nomi di altre persone ("nome del
+  padre", "cognome e nome dell'alunno" — ma non "del dichiarante") e date non di oggi ("data di scadenza");
+  `lastFirstName`, `birthProvince` (anche "prov." subito dopo "nato a"), `birthPlaceAndDate`, `custom` (dati
+  personalizzati del profilo via `DetectionInput.extraLabels`, confronto con `customKeyId`). Data a gruppi
+  `__/__/____` in un solo riquadro; etichetta in fondo a una frase senza ":" e con più di 6 parole prima non è
+  un campo. `kindForFieldName` per priorità (email/telefono/CF prima di indirizzo), non per lunghezza.
+  Prova di riferimento: `test/services/italian_forms_test.dart`.
+- **Traduzioni**: chiave con contesto dopo `|` (`tr('Annulla|modifica')` → "Annulla"/"Undo"), `trPlural`;
+  `test/l10n_test.dart` blocca anche i testi visibili scritti senza `tr()`.
+- **File temporanei**: `deleteTempFile` cancella solo percorsi privati di Sigla (`/it.sigla.sigla/` o la temp
+  di sistema) dopo scanner, "Apri con", foto e file picker (`FilePicker.clearTemporaryFiles`).
+- **Avvio**: se Hive non si apre si usa `MemoryKeyValueStore` e `HomeShell` mostra un avviso fisso.
 - **Pressione solo da stilo**: il dito su Android dà pressioni rumorose; senza stilo lo
   spessore varia con la velocità (più veloce = più sottile), filtrato passa-basso.
 
@@ -220,7 +232,7 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
 
 Vedi `docs/ROADMAP.md`. **Fasi 1–9 completate** più le migliorie (recenti, modelli, firma con data,
 penna/evidenziatore, zoom con due dita e miniature, più profili, caselle Sì/No e M/F, avviso di nuova
-versione, web app su Cloudflare Pages, inglese). 154 test verdi, `flutter analyze` pulito,
+versione, web app su Cloudflare Pages, inglese). 170+ test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
 esportazione, nessuna richiesta esterna). **APK pubblicato** (build 5 su DMReleases, dopo l'audit; firmato con la
 chiave `CN=Sigla, O=DM Releases`, stesso certificato della build 4, ~100 MB universale); web app online su https://dmsigla.pages.dev.

@@ -158,6 +158,6 @@ void main() {
   });
 
   test('sanitizeForStandardFont', () {
-    expect(sanitizeForStandardFont('Città € “ok” ✓ 你'), 'Città € "ok" v ?');
+    expect(sanitizeForStandardFont('Città € “ok” ✓ 你'), 'Città EUR "ok" v ?', reason: 'il font standard non scrive €');
   });
 }

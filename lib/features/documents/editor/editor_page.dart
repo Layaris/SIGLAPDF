@@ -215,13 +215,7 @@ class EditorPageState extends State<EditorPage> {
     });
     if (page < 0 || pts.length < 2) return;
     final info = ctrl.info.pages[page];
-    final e = inkElementFromStroke(
-      pts,
-      page: page,
-      color: _penColor ?? _inkColor,
-      inkWidth: _penWidth,
-      pageAspect: info.aspectRatio,
-    );
+    final e = inkElementFromStroke(pts, page: page, color: _penColor ?? _inkColor, inkWidth: _penWidth, pageAspect: info.aspectRatio);
     if (e != null) ctrl.addElement(e, select: false);
   }
 
@@ -233,11 +227,7 @@ class EditorPageState extends State<EditorPage> {
     ctrl.add(
       type: kind == SignatureKind.initials ? ElementType.initials : ElementType.signature,
       page: page,
-      rect: f.imageRect(
-        chosen.aspectRatio,
-        widthPts: kind == SignatureKind.initials ? 70 : 160,
-        center: _freeCenter(page),
-      ),
+      rect: f.imageRect(chosen.aspectRatio, widthPts: kind == SignatureKind.initials ? 70 : 160, center: _freeCenter(page)),
       image: chosen.png,
     );
   }
@@ -271,10 +261,7 @@ class EditorPageState extends State<EditorPage> {
                           height: 90,
                           child: SignatureImage(signature: s, padding: const EdgeInsets.all(12)),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text(s.isDefault ? tr('{0} · predefinita', [s.name]) : s.name),
-                        ),
+                        Padding(padding: const EdgeInsets.all(12), child: Text(s.isDefault ? tr('{0} · predefinita', [s.name]) : s.name)),
                       ],
                     ),
                   ),
@@ -366,9 +353,7 @@ class EditorPageState extends State<EditorPage> {
       _snack(tr('Aggiungi prima firma, testi o data: il modello ricorda dove li hai messi'));
       return;
     }
-    final base = ctrl.fileName
-        .replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '')
-        .replaceAll(RegExp(r'_(firmato|signed)$'), '');
+    final base = ctrl.fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '').replaceAll(RegExp(r'_(firmato|signed)$'), '');
     final name = await showTextInputDialog(
       context,
       title: tr('Salva come modello'),
@@ -435,9 +420,7 @@ class EditorPageState extends State<EditorPage> {
                 subtitle: Text(
                   '${trPlural(t.elements.length, '1 elemento', '{0} elementi')} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}',
                 ),
-                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint
-                    ? Text(tr('Questo modulo'))
-                    : null,
+                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint ? Text(tr('Questo modulo')) : null,
                 onTap: () => Navigator.pop(context, t),
               ),
           ],
@@ -466,9 +449,7 @@ class EditorPageState extends State<EditorPage> {
         builder: (_) => PopScope(
           canPop: false,
           child: AlertDialog(
-            content: Row(
-              children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Preparo il PDF…'))],
-            ),
+            content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Preparo il PDF…'))]),
           ),
         ),
       ),
@@ -529,10 +510,7 @@ class EditorPageState extends State<EditorPage> {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                tr('Firme e testi sono stati fissati nel documento.'),
-                style: TextStyle(color: AppColors.of(sheet).secondary),
-              ),
+              Text(tr('Firme e testi sono stati fissati nel documento.'), style: TextStyle(color: AppColors.of(sheet).secondary)),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () async {
@@ -694,9 +672,7 @@ class EditorPageState extends State<EditorPage> {
               ListTile(
                 leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text(tr('AI avanzata')),
-                subtitle: Text(
-                  tr('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.'),
-                ),
+                subtitle: Text(tr('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.')),
                 onTap: () => Navigator.pop(context, true),
               ),
             ],
@@ -727,9 +703,7 @@ class EditorPageState extends State<EditorPage> {
         builder: (_) => PopScope(
           canPop: false,
           child: AlertDialog(
-            content: Row(
-              children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Cerco i campi…'))],
-            ),
+            content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Cerco i campi…'))]),
           ),
         ),
       ),
@@ -742,13 +716,21 @@ class EditorPageState extends State<EditorPage> {
     ];
     for (final d in detectors) {
       try {
-        found.addAll(await d.detect(DetectionInput(
-          pdf: ctrl.bytes,
-          pages: ctrl.info.pages,
-          avoid: avoid,
-          // Dati personalizzati di tutti i profili ("Patente", "Cittadinanza"…): si riconoscono anche loro.
-          extraLabels: {for (final p in services.profile.profiles) for (final c in p.profile.custom) if (c.key.isNotEmpty) c.key}.toList(),
-        )));
+        found.addAll(
+          await d.detect(
+            DetectionInput(
+              pdf: ctrl.bytes,
+              pages: ctrl.info.pages,
+              avoid: avoid,
+              // Dati personalizzati di tutti i profili ("Patente", "Cittadinanza"…): si riconoscono anche loro.
+              extraLabels: {
+                for (final p in services.profile.profiles)
+                  for (final c in p.profile.custom)
+                    if (c.key.isNotEmpty) c.key,
+              }.toList(),
+            ),
+          ),
+        );
       } on AiDetectionException catch (e) {
         error = e.message;
       } on PdfOpenException catch (e) {
@@ -877,16 +859,8 @@ class EditorPageState extends State<EditorPage> {
               appBar: AppBar(
                 title: Text(ctrl.fileName, overflow: TextOverflow.ellipsis),
                 actions: [
-                  IconButton(
-                    tooltip: tr('Annulla|modifica'),
-                    onPressed: ctrl.canUndo ? ctrl.undo : null,
-                    icon: const Icon(Icons.undo),
-                  ),
-                  IconButton(
-                    tooltip: tr('Ripeti'),
-                    onPressed: ctrl.canRedo ? ctrl.redo : null,
-                    icon: const Icon(Icons.redo),
-                  ),
+                  IconButton(tooltip: tr('Annulla|modifica'), onPressed: ctrl.canUndo ? ctrl.undo : null, icon: const Icon(Icons.undo)),
+                  IconButton(tooltip: tr('Ripeti'), onPressed: ctrl.canRedo ? ctrl.redo : null, icon: const Icon(Icons.redo)),
                   PopupMenuButton<String>(
                     tooltip: tr('Altro'),
                     onSelected: (v) => v == 'save' ? saveTemplate() : chooseTemplate(),
@@ -915,12 +889,7 @@ class EditorPageState extends State<EditorPage> {
                       ],
                     ),
                   ),
-                  if (_drawMode)
-                    _penBar()
-                  else if (ctrl.selected != null)
-                    _selectionBar(ctrl.selected!)
-                  else
-                    _toolbar(),
+                  if (_drawMode) _penBar() else if (ctrl.selected != null) _selectionBar(ctrl.selected!) else _toolbar(),
                 ],
               ),
             ),
@@ -990,9 +959,7 @@ class EditorPageState extends State<EditorPage> {
                                 behavior: HitTestBehavior.opaque,
                                 onPanStart: (d) => setState(() {
                                   _livePage = i;
-                                  _liveStroke = [
-                                    Offset(d.localPosition.dx / size.width, d.localPosition.dy / size.height),
-                                  ];
+                                  _liveStroke = [Offset(d.localPosition.dx / size.width, d.localPosition.dy / size.height)];
                                 }),
                                 onPanUpdate: (d) {
                                   if (_livePage != i) return;
@@ -1022,28 +989,34 @@ class EditorPageState extends State<EditorPage> {
             );
           },
         );
+        // Con un foglio o un dialogo aperto sopra (es. "Scegli la firma") il documento non deve scorrere
+        // con la rotellina: la firma finirebbe su un'altra pagina.
+        final onTop = ModalRoute.of(context)?.isCurrent ?? true;
         return Stack(
           children: [
             Positioned.fill(
               // Zoom con due dita (touch) e con Ctrl + rotella (mouse).
-              child: Listener(
-                onPointerDown: (e) => _pointerDown(e.pointer, e.position),
-                onPointerMove: (e) => _pointerMove(e.pointer, e.position),
-                onPointerUp: (e) => _pointerUp(e.pointer),
-                onPointerCancel: (e) => _pointerUp(e.pointer),
-                onPointerSignal: _pointerSignal,
-                // Un tocco fuori dalla pagina deseleziona (i tocchi su pagina ed elementi vincono prima).
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () => ctrl.select(null),
-                  child: ColoredBox(
-                    color: c.paper,
-                    child: totalWidth > constraints.maxWidth
-                        ? SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(width: totalWidth, child: list),
-                          )
-                        : list,
+              child: IgnorePointer(
+                ignoring: !onTop,
+                child: Listener(
+                  onPointerDown: (e) => _pointerDown(e.pointer, e.position),
+                  onPointerMove: (e) => _pointerMove(e.pointer, e.position),
+                  onPointerUp: (e) => _pointerUp(e.pointer),
+                  onPointerCancel: (e) => _pointerUp(e.pointer),
+                  onPointerSignal: _pointerSignal,
+                  // Un tocco fuori dalla pagina deseleziona (i tocchi su pagina ed elementi vincono prima).
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () => ctrl.select(null),
+                    child: ColoredBox(
+                      color: c.paper,
+                      child: totalWidth > constraints.maxWidth
+                          ? SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(width: totalWidth, child: list),
+                            )
+                          : list,
+                    ),
                   ),
                 ),
               ),
@@ -1082,8 +1055,7 @@ class EditorPageState extends State<EditorPage> {
   }
 
   void _pointerSignal(PointerSignalEvent e) {
-    if (e is PointerScrollEvent &&
-        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+    if (e is PointerScrollEvent && (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
       _setZoom(_zoom * (e.scrollDelta.dy > 0 ? 0.9 : 1.1));
     }
   }

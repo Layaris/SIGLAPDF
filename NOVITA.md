@@ -8,7 +8,19 @@ nel CHANGELOG di Layaris/DMReleases, e qui diventa "build-N".
 
 ## Prossima versione
 
-- Nessuna novità per ora
+- Compilazione automatica più precisa sui moduli italiani: "Cognome e nome" nell'ordine giusto, luogo e provincia di nascita, "Luogo, data", date con le barre (__/__/____), "Cod. Fisc.", domicilio, recapito telefonico, viale/corso/piazza senza ripetere "Via"
+- I campi di altre persone ("Nome del padre", "dell'alunno") e le date diverse da oggi ("Data di scadenza") non ricevono più i tuoi dati
+- Riconosce i consensi privacy (Acconsento / Non acconsento) e i tuoi dati personalizzati del profilo (es. "Cittadinanza", "Patente")
+- Nuovo dato nel profilo: provincia di nascita
+- Moduli compilabili: provincia e sesso anche nei menu a tendina, indirizzo completo nei campi su più righe, nomi dei campi comprensibili
+- Riconoscimento AI: se una pagina non riesce le altre restano, avviso oltre le 10 pagine, caselle M/F e Sì/No, messaggio chiaro se il credito è finito
+- Privacy: le foto dello scanner e i PDF ricevuti con "Apri con" non restano più nella memoria dell'app
+- Se l'archivio del telefono non si apre, l'app parte lo stesso con un avviso (prima restava bianca)
+- Disegno della firma: "Annulla" annulla anche "Cancella"
+- Il simbolo € diventa "EUR" nel PDF (prima spariva), anche nell'anteprima
+- Sul computer compare "PDF salvato" / "Backup salvato"; la rotellina non sposta più il documento sotto i fogli aperti
+- Inglese: "Undo", "Signature", "Initials" nell'editor, plurali corretti, date dei recenti in inglese
+- Schermi piccoli: i pulsanti delle impostazioni non spezzano più le parole
 
 ## build-5 · 8 novembre 2026
 

@@ -81,10 +81,11 @@ class _AppearanceSection extends StatelessWidget {
             const SizedBox(height: 8),
             SegmentedButton<ThemeMode>(
               segments: [
-                ButtonSegment(value: ThemeMode.system, label: Text(tr('Sistema'))),
-                ButtonSegment(value: ThemeMode.light, label: Text(tr('Chiaro'))),
-                ButtonSegment(value: ThemeMode.dark, label: Text(tr('Scuro'))),
+                ButtonSegment(value: ThemeMode.system, label: _segLabel(tr('Sistema'))),
+                ButtonSegment(value: ThemeMode.light, label: _segLabel(tr('Chiaro'))),
+                ButtonSegment(value: ThemeMode.dark, label: _segLabel(tr('Scuro'))),
               ],
+              showSelectedIcon: _roomy(context),
               selected: {s.themeMode},
               onSelectionChanged: (v) => repo.update((x) => x.copyWith(themeMode: v.first)),
             ),
@@ -93,10 +94,11 @@ class _AppearanceSection extends StatelessWidget {
             const SizedBox(height: 8),
             SegmentedButton<String>(
               segments: [
-                const ButtonSegment(value: 'it', label: Text('Italiano')),
-                const ButtonSegment(value: 'en', label: Text('English')),
-                ButtonSegment(value: 'system', label: Text(tr('Sistema'))),
+                ButtonSegment(value: 'it', label: _segLabel('Italiano')),
+                ButtonSegment(value: 'en', label: _segLabel('English')),
+                ButtonSegment(value: 'system', label: _segLabel(tr('Sistema'))),
               ],
+              showSelectedIcon: _roomy(context),
               selected: {s.language},
               onSelectionChanged: (v) => repo.update((x) => x.copyWith(language: v.first)),
             ),
@@ -105,8 +107,8 @@ class _AppearanceSection extends StatelessWidget {
             const SizedBox(height: 8),
             SegmentedButton<String>(
               segments: [
-                ButtonSegment(value: 'blue', label: Text(tr('Blu')), icon: const Icon(Icons.circle, color: InkColors.blue, size: 14)),
-                ButtonSegment(value: 'black', label: Text(tr('Nero')), icon: const Icon(Icons.circle, color: InkColors.black, size: 14)),
+                ButtonSegment(value: 'blue', label: _segLabel(tr('Blu')), icon: const Icon(Icons.circle, color: InkColors.blue, size: 14)),
+                ButtonSegment(value: 'black', label: _segLabel(tr('Nero')), icon: const Icon(Icons.circle, color: InkColors.black, size: 14)),
               ],
               selected: {s.inkColor},
               onSelectionChanged: (v) => repo.update((x) => x.copyWith(inkColor: v.first)),
@@ -275,7 +277,12 @@ class _BackupSection extends StatelessWidget {
       ListTile(
         leading: const Icon(Icons.upload_file_outlined),
         title: Text(tr('Esporta backup')),
-        subtitle: Text(tr('Firme, profilo e impostazioni in un file .sigla protetto da password'), style: TextStyle(color: c.secondary)),
+        subtitle: Text(
+          kIsWeb
+              ? tr('Firme, profilo e impostazioni in un file .sigla protetto da password')
+              : tr('Firme, profilo e impostazioni in un file .sigla protetto da password. Disinstallando l\'app i dati si cancellano: tieni un backup.'),
+          style: TextStyle(color: c.secondary),
+        ),
         onTap: () => exportBackupFlow(context),
       ),
       const Divider(height: 1),
@@ -359,3 +366,10 @@ class _InfoSection extends StatelessWidget {
     ]);
   }
 }
+
+/// Etichetta dei pulsanti a segmenti: su una riga sola, rimpicciolita se non c'entra
+/// (a 320 px "Sistema" andava a capo a metà parola).
+Widget _segLabel(String text) => FittedBox(fit: BoxFit.scaleDown, child: Text(text, maxLines: 1, softWrap: false));
+
+/// Spazio per la spunta accanto all'opzione scelta (sugli schermi stretti si toglie).
+bool _roomy(BuildContext context) => MediaQuery.sizeOf(context).width >= 380;

@@ -358,4 +358,5 @@ const Map<String, String> stringsEn = {
   '1 elemento': '1 item',
   'Compilato 1 campo dal profilo': 'Filled in 1 field from the profile',
   '1 campo. Diventa testo fisso quando esporti il PDF.': '1 field. It becomes fixed text when you export the PDF.',
+  'Firme, profilo e impostazioni in un file .sigla protetto da password. Disinstallando l\'app i dati si cancellano: tieni un backup.': 'Signatures, profile and settings in a password-protected .sigla file. Uninstalling the app deletes your data: keep a backup.',
 };

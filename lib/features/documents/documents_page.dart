@@ -276,7 +276,7 @@ class _RecentsSection extends StatelessWidget {
         if (repo.isEmpty || !services.settings.value.keepRecents) return const SizedBox.shrink();
         final c = AppColors.of(context);
         final t = Theme.of(context).textTheme;
-        final fmt = DateFormat(tr('d MMM yyyy, HH:mm'), 'it_IT');
+        final fmt = DateFormat(tr('d MMM yyyy, HH:mm'), L10n.isEnglish ? 'en_US' : 'it_IT');
         return Padding(
           padding: const EdgeInsets.only(top: 20),
           child: Column(
