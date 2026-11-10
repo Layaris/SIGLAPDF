@@ -72,7 +72,7 @@ class _FormFieldsSheetState extends State<_FormFieldsSheet> {
                     ),
                   ],
                 ),
-                Text(tr('{0} campi. Diventano testo fisso quando esporti il PDF.', [fields.length]), style: TextStyle(color: c.secondary)),
+                Text(trPlural(fields.length, '1 campo. Diventa testo fisso quando esporti il PDF.', '{0} campi. Diventano testo fisso quando esporti il PDF.'), style: TextStyle(color: c.secondary)),
                 const SizedBox(height: 16),
                 for (final f in fields) _field(f),
               ],

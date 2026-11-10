@@ -21,7 +21,7 @@ enum FieldKind {
   date('Data'),
   place('Luogo'),
   placeAndDate('Luogo e data'),
-  signature('Firma'),
+  signature('Firma|nome'),
   gender('Sesso'),
   yesNo('Sì / No'),
   custom('Dato personalizzato'),

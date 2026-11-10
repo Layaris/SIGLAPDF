@@ -61,10 +61,13 @@ void main() {
       expect(d.strokes, hasLength(2));
       d.clear();
       expect(d.isEmpty, isTrue);
-      // Cancella si può annullare con Ripeti.
-      d.redo();
-      d.redo();
+      // "Cancella" si annulla con un solo "Annulla" (prima serviva "Ripeti", un tratto alla volta).
+      expect(d.canUndo, isTrue);
+      d.undo();
       expect(d.strokes, hasLength(2));
+      d.redo();
+      expect(d.isEmpty, isTrue, reason: 'Ripeti rifà la cancellazione');
+      d.undo();
       // Un nuovo tratto svuota Ripeti.
       d.undo();
       d.begin(const InkPoint(5, 5), width: 3, color: _blue);

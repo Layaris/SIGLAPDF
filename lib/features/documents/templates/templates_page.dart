@@ -36,7 +36,7 @@ class TemplatesPage extends StatelessWidget {
                           leading: const Icon(Icons.dashboard_customize_outlined),
                           title: Text(t.name),
                           subtitle: Text(
-                            '${tr('{0} elementi', [t.elements.length])} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}${t.fingerprint == null ? tr(' · da applicare a mano') : ''}',
+                            '${trPlural(t.elements.length, '1 elemento', '{0} elementi')} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}${t.fingerprint == null ? tr(' · da applicare a mano') : ''}',
                             style: TextStyle(color: c.secondary),
                           ),
                           trailing: PopupMenuButton<String>(

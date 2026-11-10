@@ -433,7 +433,7 @@ class EditorPageState extends State<EditorPage> {
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 title: Text(t.name),
                 subtitle: Text(
-                  '${tr('{0} elementi', [t.elements.length])} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}',
+                  '${trPlural(t.elements.length, '1 elemento', '{0} elementi')} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}',
                 ),
                 trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint
                     ? Text(tr('Questo modulo'))
@@ -626,7 +626,7 @@ class EditorPageState extends State<EditorPage> {
     _snack(
       values.isEmpty
           ? tr('Nessun campo da compilare con il profilo')
-          : tr('Compilati {0} campi dal profilo', [values.length]),
+          : trPlural(values.length, 'Compilato 1 campo dal profilo', 'Compilati {0} campi dal profilo'),
     );
   }
 
@@ -878,7 +878,7 @@ class EditorPageState extends State<EditorPage> {
                 title: Text(ctrl.fileName, overflow: TextOverflow.ellipsis),
                 actions: [
                   IconButton(
-                    tooltip: tr('Annulla'),
+                    tooltip: tr('Annulla|modifica'),
                     onPressed: ctrl.canUndo ? ctrl.undo : null,
                     icon: const Icon(Icons.undo),
                   ),
@@ -1248,8 +1248,8 @@ class EditorPageState extends State<EditorPage> {
   }
 
   Widget _toolbar() => _bar([
-    _ToolButton(icon: Icons.gesture, label: tr('Firma'), onTap: () => addSignature(SignatureKind.signature)),
-    _ToolButton(icon: Icons.short_text, label: 'Sigla', onTap: () => addSignature(SignatureKind.initials)),
+    _ToolButton(icon: Icons.gesture, label: tr('Firma|nome'), onTap: () => addSignature(SignatureKind.signature)),
+    _ToolButton(icon: Icons.short_text, label: tr('Sigla'), onTap: () => addSignature(SignatureKind.initials)),
     _ToolButton(icon: Icons.edit_calendar_outlined, label: tr('Firma e data'), onTap: addSignedDate),
     _ToolButton(icon: Icons.title, label: tr('Testo'), onTap: addText),
     _ToolButton(icon: Icons.today_outlined, label: tr('Data'), onTap: addDate),
@@ -1303,7 +1303,7 @@ class EditorPageState extends State<EditorPage> {
       width(0.0025, tr('Fine')),
       width(0.004, tr('Media')),
       width(0.007, tr('Spessa')),
-      _ToolButton(icon: Icons.undo, label: tr('Annulla'), onTap: ctrl.undo),
+      _ToolButton(icon: Icons.undo, label: tr('Annulla|modifica'), onTap: ctrl.undo),
       _ToolButton(icon: Icons.done, label: tr('Fatto'), onTap: _toggleDraw),
     ]);
   }
@@ -1330,7 +1330,7 @@ class EditorPageState extends State<EditorPage> {
         label: tr('Su tutte'),
         onTap: () {
           final n = ctrl.replicateOnAllPages(e);
-          _snack(n == 0 ? tr('Già presente su tutte le pagine') : tr('Copiato su {0} pagine', [n]));
+          _snack(n == 0 ? tr('Già presente su tutte le pagine') : trPlural(n, 'Copiato su 1 pagina', 'Copiato su {0} pagine'));
         },
       ),
     _ToolButton(icon: Icons.delete_outline, label: tr('Elimina'), onTap: () => ctrl.remove(e.id)),

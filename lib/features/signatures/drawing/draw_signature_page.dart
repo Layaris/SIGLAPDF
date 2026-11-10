@@ -246,7 +246,7 @@ class _Toolbar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  tooltip: tr('Annulla'),
+                  tooltip: tr('Annulla|modifica'),
                   onPressed: drawing.canUndo ? drawing.undo : null,
                   icon: const Icon(Icons.undo),
                 ),
