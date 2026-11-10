@@ -759,6 +759,8 @@ class EditorPageState extends State<EditorPage> {
     }
     nav.pop();
     if (!mounted) return;
+    // Pagine non analizzate dall'AI (errore a metà o oltre il limite): lo si dice nell'anteprima.
+    final aiWarning = detectors.whereType<AnthropicFieldDetector>().map((d) => d.lastWarning).whereType<String>().firstOrNull;
     if (found.isEmpty) {
       _snack(
         error ??
@@ -779,7 +781,10 @@ class EditorPageState extends State<EditorPage> {
           profiles: services.profile.profiles,
           initialProfileId: services.profile.activeId,
           today: todayText(),
-          note: profile.isEmpty ? tr('Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.') : null,
+          note: [
+            ?aiWarning,
+            if (profile.isEmpty) tr('Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.'),
+          ].join('\n').ifEmptyNull,
         ),
       ),
     );
@@ -1373,4 +1378,8 @@ class _ToolButton extends StatelessWidget {
       ),
     );
   }
+}
+
+extension on String {
+  String? get ifEmptyNull => isEmpty ? null : this;
 }

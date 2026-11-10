@@ -170,6 +170,8 @@ class LocalTextFieldDetector implements FieldDetector {
   static final _optionWord = RegExp(r'(?:non\s+)?[a-zà-ÿ]+');
 
   /// Etichetta normalizzata di un'opzione (Sì/No, M/F) o null se non è una scelta nota.
+  static String? optionLabel(String w) => _optionLabel(normalizeForMatching(w.trim()));
+
   static String? _optionLabel(String w) => switch (w.replaceAll(RegExp(r'\s+'), ' ')) {
         'si' || 'sì' || 'sí' || 'yes' => 'Sì',
         'no' => 'No',

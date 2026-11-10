@@ -320,7 +320,6 @@ const Map<String, String> stringsEn = {
   'La chiave API non ha i permessi per questa richiesta.': 'The API key doesn\'t have permission for this request.',
   'Modello non trovato. Controlla il nome del modello in Impostazioni.': 'Model not found. Check the model name in Settings.',
   'La pagina è troppo grande per il servizio AI.': 'The page is too large for the AI service.',
-  'Troppe richieste o credito esaurito. Riprova tra poco.': 'Too many requests or no credit left. Try again shortly.',
   'Richiesta rifiutata: {0}': 'Request rejected: {0}',
   'Richiesta rifiutata.': 'Request rejected.',
   'Il servizio AI non è disponibile in questo momento. Riprova più tardi.': 'The AI service is not available right now. Try again later.',
@@ -349,4 +348,8 @@ const Map<String, String> stringsEn = {
   'Dato personalizzato': 'Custom detail',
   'Archivio non disponibile: firme e dati di questa sessione non verranno salvati. Libera spazio o esci dalla navigazione privata e riapri Sigla.': 'Storage unavailable: signatures and data from this session will not be saved. Free up space or leave private browsing and reopen Sigla.',
   'PDF troppo grande da aprire (massimo 100 MB).': 'PDF too large to open (100 MB maximum).',
+  'Analizzate {0} pagine su {1}: {2}': 'Analysed {0} of {1} pages: {2}',
+  'Il riconoscimento AI ha analizzato solo le prime {0} pagine su {1}.': 'AI recognition analysed only the first {0} of {1} pages.',
+  'Credito esaurito sull\'account Anthropic. Ricaricalo e riprova.': 'Your Anthropic account is out of credit. Top it up and try again.',
+  'Troppe richieste. Riprova tra poco.': 'Too many requests. Try again shortly.',
 };
