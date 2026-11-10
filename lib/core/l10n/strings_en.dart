@@ -347,4 +347,6 @@ const Map<String, String> stringsEn = {
   'Luogo e data di nascita': 'Place and date of birth',
   'gg/mm/aaaa': 'dd/mm/yyyy',
   'Dato personalizzato': 'Custom detail',
+  'Archivio non disponibile: firme e dati di questa sessione non verranno salvati. Libera spazio o esci dalla navigazione privata e riapri Sigla.': 'Storage unavailable: signatures and data from this session will not be saved. Free up space or leave private browsing and reopen Sigla.',
+  'PDF troppo grande da aprire (massimo 100 MB).': 'PDF too large to open (100 MB maximum).',
 };

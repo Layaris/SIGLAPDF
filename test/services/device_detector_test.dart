@@ -71,4 +71,21 @@ void main() {
   });
 
   test('createDeviceOcr: fuori da Android non c\'è', () => expect(createDeviceOcr(), isNull));
+
+  test('pagine grandi: l\'OCR usa meno dpi, mai più di ~2800 px sul lato lungo', () async {
+    final pdf = await _scannedPdf();
+    final info = const PdfService().inspect(pdf);
+    final dpis = <double>[];
+    Future<RgbaPage?> raster(Uint8List pdf, int page, double dpi) async {
+      dpis.add(dpi);
+      return _raster(pdf, page, dpi);
+    }
+
+    final big = [const PdfPageInfo(index: 0, unrotated: Size(2000, 3000), rotation: 0)];
+    await DeviceFieldDetector(ocr: FakeOcr(), rasterizer: raster).detect(DetectionInput(pdf: pdf, pages: big));
+    expect(dpis.single, lessThanOrEqualTo(72.0));
+    dpis.clear();
+    await DeviceFieldDetector(ocr: FakeOcr(), rasterizer: raster).detect(DetectionInput(pdf: pdf, pages: info.pages));
+    expect(dpis.single, 200, reason: 'un A4 resta a 200 dpi');
+  });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_services.dart';
 import '../../core/l10n/l10n.dart';
 import '../documents/documents_page.dart';
 import '../profile/profile_page.dart';
@@ -52,10 +53,13 @@ class HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 720;
-    final body = IndexedStack(
+    final stack = IndexedStack(
       index: _index,
       children: [for (var i = 0; i < _destinations.length; i++) _page(i)],
     );
+    final body = AppScope.of(context).storageUnavailable
+        ? Column(children: [const _StorageWarning(), Expanded(child: stack)])
+        : stack;
 
     if (!wide) {
       return Scaffold(
@@ -95,6 +99,37 @@ class HomeShellState extends State<HomeShell> {
           const VerticalDivider(width: 1),
           Expanded(child: body),
         ],
+      ),
+    );
+  }
+}
+
+/// Avviso fisso quando l'archivio non è disponibile.
+class _StorageWarning extends StatelessWidget {
+  const _StorageWarning();
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Material(
+      color: cs.errorContainer,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: cs.onErrorContainer),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  tr('Archivio non disponibile: firme e dati di questa sessione non verranno salvati. Libera spazio o esci dalla navigazione privata e riapri Sigla.'),
+                  style: TextStyle(color: cs.onErrorContainer),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 
 /// File scelto dall'utente: nome e byte.
 class PickedBytes {
@@ -26,7 +25,17 @@ class SystemFileAccess implements FileAccess {
   Future<PickedBytes?> _one(FileType type, {List<String>? ext}) async {
     final f = await FilePicker.pickFile(type: type, allowedExtensions: ext);
     if (f == null) return null;
-    return PickedBytes(f.name, await f.readAsBytes());
+    final bytes = await f.readAsBytes();
+    await _clearCache();
+    return PickedBytes(f.name, bytes);
+  }
+
+  /// Su Android il file scelto viene copiato nella cache dell'app: letti i byte, la copia si toglie.
+  static Future<void> _clearCache() async {
+    if (kIsWeb) return;
+    try {
+      await FilePicker.clearTemporaryFiles();
+    } catch (_) {}
   }
 
   @override
@@ -38,7 +47,9 @@ class SystemFileAccess implements FileAccess {
   @override
   Future<List<PickedBytes>> pickImages() async {
     final files = await FilePicker.pickFiles(type: FileType.image);
-    return [for (final f in files) PickedBytes(f.name, await f.readAsBytes())];
+    final out = [for (final f in files) PickedBytes(f.name, await f.readAsBytes())];
+    await _clearCache();
+    return out;
   }
 
   @override
@@ -48,6 +59,7 @@ class SystemFileAccess implements FileAccess {
   @override
   Future<bool> save({required String fileName, required Uint8List bytes, required String mimeType}) async {
     final uri = await FilePicker.saveFile(fileName: fileName, bytes: bytes, mimeType: mimeType);
-    return uri != null;
+    // Sul web il file viene scaricato ma la libreria restituisce sempre null: il salvataggio è riuscito.
+    return kIsWeb || uri != null;
   }
 }
