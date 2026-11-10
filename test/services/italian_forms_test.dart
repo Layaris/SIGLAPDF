@@ -110,4 +110,21 @@ void main() {
     expect(kindForFieldName('indirizzo'), FieldKind.address);
     expect(kindForFieldName('CAP'), FieldKind.zip);
   });
+
+  test('moduli compilabili: liste e pulsanti di scelta dal profilo, caselle mai spuntate da sole', () {
+    FormFieldInfo f(String name, FormFieldKind kind, [List<String> options = const [], bool multiline = false]) =>
+        FormFieldInfo(name: name, kind: kind, value: '', page: 0, rect: null, options: options, multiline: multiline);
+    final v = acroFormValuesFromProfile([
+      f('provincia', FormFieldKind.combo, ['Bologna (BO)', 'Modena (MO)']),
+      f('sesso', FormFieldKind.radio, ['Maschio', 'Femmina']),
+      f('privacy', FormFieldKind.checkbox),
+      f('indirizzo', FormFieldKind.text, const [], true),
+      f('provincia_nascita', FormFieldKind.combo, ['BO', 'MO']),
+    ], const {}, _profile, today: '08/11/2026');
+    expect(v['provincia'], 'Bologna (BO)');
+    expect(v['sesso'], 'Femmina');
+    expect(v.containsKey('privacy'), isFalse);
+    expect(v['indirizzo'], 'Via delle Rose 8 40121 Bologna (BO)');
+    expect(v['provincia_nascita'], 'MO');
+  });
 }

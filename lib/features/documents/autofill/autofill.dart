@@ -135,15 +135,43 @@ List<PlacedElement> proposalsToElements(
 }
 
 /// Valori AcroForm proposti dal profilo per i campi ancora vuoti, in base al nome del campo.
+/// Testi: il dato del profilo. Liste e pulsanti di scelta (provincia, sesso…): l'opzione corrispondente.
+/// Le caselle (es. consensi) non si spuntano mai da sole.
 Map<String, String> acroFormValuesFromProfile(List<FormFieldInfo> fields, Map<String, String> current, Profile profile, {required String today}) {
   final out = <String, String>{};
   for (final f in fields) {
-    if (f.kind != FormFieldKind.text || !f.isFillable) continue;
+    if (!f.isFillable) continue;
+    if (f.kind == FormFieldKind.checkbox) continue;
     if ((current[f.name] ?? '').trim().isNotEmpty) continue;
     final kind = kindForFieldName(f.name);
     if (kind == null || kind == FieldKind.signature) continue;
-    final v = kind.proposedValue(profile, today: today);
-    if (v.isNotEmpty) out[f.name] = v;
+    var v = kind.proposedValue(profile, today: today);
+    // Campo indirizzo su più righe: indirizzo completo.
+    if (kind == FieldKind.address && f.multiline) {
+      v = [profile[ProfileField.address], [profile[ProfileField.zip], profile[ProfileField.city]].where((s) => s.isNotEmpty).join(' '),
+        if (profile[ProfileField.province].isNotEmpty) '(${profile[ProfileField.province].toUpperCase()})'].where((s) => s.isNotEmpty).join(' ');
+    }
+    if (v.isEmpty) continue;
+    if (f.kind == FormFieldKind.text) {
+      out[f.name] = v;
+    } else if (f.options.isNotEmpty) {
+      final match = _matchOption(f.options, v);
+      if (match != null) out[f.name] = match;
+    }
   }
   return out;
+}
+
+/// Opzione di una lista che corrisponde a un valore ("BO" ~ "Bologna (BO)", "F" ~ "Femmina").
+String? _matchOption(List<String> options, String value) {
+  final v = normalizeForMatching(value.trim());
+  for (final o in options) {
+    if (normalizeForMatching(o.trim()) == v) return o;
+  }
+  for (final o in options) {
+    final n = normalizeForMatching(o.trim());
+    if (v.length == 1 && n.startsWith(v)) return o; // M/F
+    if (v.length == 2 && RegExp('\\($v\\)').hasMatch(n)) return o; // sigla di provincia tra parentesi
+  }
+  return null;
 }

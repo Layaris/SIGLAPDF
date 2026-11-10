@@ -119,7 +119,7 @@ void main() {
     // Il campo "nome" è riconosciuto come nome di battesimo.
     expect(page.controller.formValues['nome'], 'Anna');
     expect(page.controller.formValues['citta'], 'Milano', reason: 'i campi già compilati restano');
-    await tester.enterText(find.widgetWithText(TextField, 'nome · pag. 1'), 'Annalisa');
+    await tester.enterText(find.widgetWithText(TextField, 'Nome · pag. 1'), 'Annalisa'); // nome comprensibile, non "nome"
     await tester.pump();
     expect(page.controller.formValues['nome'], 'Annalisa');
     page.controller.undo();
