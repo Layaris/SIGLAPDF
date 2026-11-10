@@ -65,7 +65,7 @@ class DeviceFieldDetector implements FieldDetector {
         if (words < minWords) {
           scanned.add(p);
         } else {
-          out.addAll(detectFieldsInLines(lines, input.pages[p], p, source: name));
+          out.addAll(detectFieldsInLines(lines, input.pages[p], p, source: name, extraLabels: input.extraLabels));
         }
       }
     } finally {
@@ -96,7 +96,7 @@ class DeviceFieldDetector implements FieldDetector {
               WordBox(w.text, Rect.fromLTRB(w.rect.left * sx, w.rect.top * sy, w.rect.right * sx, w.rect.bottom * sy)),
         ],
     ]..sort((a, b) => (a.isEmpty ? 0 : a.first.rect.top).compareTo(b.isEmpty ? 0 : b.first.rect.top));
-    return detectFieldsInLines(boxes.where((l) => l.isNotEmpty).toList(), info, p, source: 'OCR');
+    return detectFieldsInLines(boxes.where((l) => l.isNotEmpty).toList(), info, p, source: 'OCR', extraLabels: input.extraLabels);
   }
 
   static bool _overlaps(Rect a, Rect b) {

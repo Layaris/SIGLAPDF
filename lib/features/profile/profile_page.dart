@@ -379,10 +379,11 @@ class _ProfilePageState extends State<ProfilePage> {
               _field(
                 ProfileField.birthDate,
                 keyboard: TextInputType.datetime,
-                hint: 'gg/mm/aaaa',
+                hint: tr('gg/mm/aaaa'),
                 suffix: IconButton(tooltip: tr('Scegli la data'), icon: const Icon(Icons.calendar_month_outlined), onPressed: _pickBirthDate),
               ),
               _field(ProfileField.birthPlace),
+              _field(ProfileField.birthProvince, upper: true, maxLength: 2, hint: 'MO'),
             ]),
             _genderField(),
             _field(ProfileField.taxCode, upper: true, maxLength: 16),

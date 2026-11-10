@@ -33,6 +33,28 @@ String matchChoice(DetectedField f, String value) {
   return '';
 }
 
+/// Se l'etichetta è già il tipo di strada ("Via ____"), il valore non lo ripete ("Via Via Roma 1" → "Roma 1").
+String stripStreetType(String label, String value) {
+  const types = {'via', 'viale', 'piazza', 'piazzale', 'corso', 'largo', 'vicolo', 'strada', 'contrada'};
+  final l = normalizeForMatching(label.trim());
+  if (!types.contains(l)) return value;
+  final m = RegExp(r'^\s*(\S+)\s+(.+)$').firstMatch(value);
+  if (m == null || normalizeForMatching(m.group(1)!) != l) return value;
+  return m.group(2)!.trim();
+}
+
+/// Valore proposto per un campo con un profilo: tipo di dato, opzione da spuntare, dati personalizzati.
+String proposalValue(DetectedField f, Profile profile, {required String today}) {
+  var v = f.kind.proposedValue(profile, today: today);
+  if (f.kind.isChoice) v = matchChoice(f, v);
+  if (f.kind == FieldKind.address) v = stripStreetType(f.label, v);
+  if (f.kind == FieldKind.custom) {
+    final key = customKeyId(f.label);
+    v = profile.custom.where((c) => customKeyId(c.key) == key).firstOrNull?.value ?? '';
+  }
+  return v;
+}
+
 /// Crea le proposte dai campi trovati. I campi senza valore nel profilo partono esclusi.
 List<FillProposal> buildProposals(List<DetectedField> fields, Profile profile, {required String today, bool hasSignature = false}) {
   final sorted = [...fields]..sort((a, b) {
@@ -44,8 +66,7 @@ List<FillProposal> buildProposals(List<DetectedField> fields, Profile profile, {
   return [
     for (final f in sorted)
       () {
-        var v = f.kind.proposedValue(profile, today: today);
-        if (f.kind.isChoice) v = matchChoice(f, v);
+        final v = proposalValue(f, profile, today: today);
         final include = f.kind == FieldKind.signature ? hasSignature : v.isNotEmpty;
         return FillProposal(field: f, value: v, include: include);
       }(),

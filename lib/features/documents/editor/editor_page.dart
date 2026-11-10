@@ -742,7 +742,13 @@ class EditorPageState extends State<EditorPage> {
     ];
     for (final d in detectors) {
       try {
-        found.addAll(await d.detect(DetectionInput(pdf: ctrl.bytes, pages: ctrl.info.pages, avoid: avoid)));
+        found.addAll(await d.detect(DetectionInput(
+          pdf: ctrl.bytes,
+          pages: ctrl.info.pages,
+          avoid: avoid,
+          // Dati personalizzati di tutti i profili ("Patente", "Cittadinanza"…): si riconoscono anche loro.
+          extraLabels: {for (final p in services.profile.profiles) for (final c in p.profile.custom) if (c.key.isNotEmpty) c.key}.toList(),
+        )));
       } on AiDetectionException catch (e) {
         error = e.message;
       } on PdfOpenException catch (e) {

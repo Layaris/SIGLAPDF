@@ -342,4 +342,9 @@ const Map<String, String> stringsEn = {
   'Il backup non contiene dati: non ho cambiato niente.': 'The backup contains no data: nothing was changed.',
   'Controllo non riuscito. Controlla internet e riprova.': 'Check failed. Check your connection and try again.',
   'L\'eliminazione non si può annullare.': 'This cannot be undone.',
+  'Cognome e nome': 'Last and first name',
+  'Provincia di nascita': 'Province of birth',
+  'Luogo e data di nascita': 'Place and date of birth',
+  'gg/mm/aaaa': 'dd/mm/yyyy',
+  'Dato personalizzato': 'Custom detail',
 };

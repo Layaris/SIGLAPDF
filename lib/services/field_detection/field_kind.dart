@@ -4,10 +4,13 @@ import '../../features/profile/profile_model.dart';
 /// Tipo di dato atteso in un campo, con il valore proposto dal profilo.
 enum FieldKind {
   fullName('Nome e cognome'),
+  lastFirstName('Cognome e nome'),
   firstName('Nome'),
   lastName('Cognome'),
   birthDate('Data di nascita'),
   birthPlace('Luogo di nascita'),
+  birthProvince('Provincia di nascita'),
+  birthPlaceAndDate('Luogo e data di nascita'),
   taxCode('Codice fiscale'),
   address('Indirizzo'),
   zip('CAP'),
@@ -21,6 +24,7 @@ enum FieldKind {
   signature('Firma'),
   gender('Sesso'),
   yesNo('Sì / No'),
+  custom('Dato personalizzato'),
   text('Testo');
 
   /// Campi a scelta: si risponde spuntando una casella.
@@ -44,10 +48,13 @@ enum FieldKind {
   /// Valore proposto dal profilo (stringa vuota se manca). Per la firma: vuoto, si usa l'immagine.
   String proposedValue(Profile p, {required String today}) => switch (this) {
         fullName => p.fullName,
+        lastFirstName => [p[ProfileField.lastName], p[ProfileField.firstName]].where((s) => s.isNotEmpty).join(' '),
         firstName => p[ProfileField.firstName],
         lastName => p[ProfileField.lastName],
         birthDate => p[ProfileField.birthDate],
         birthPlace => p[ProfileField.birthPlace],
+        birthProvince => p[ProfileField.birthProvince].toUpperCase(),
+        birthPlaceAndDate => [p[ProfileField.birthPlace], p[ProfileField.birthDate]].where((s) => s.isNotEmpty).join(', '),
         taxCode => p[ProfileField.taxCode].toUpperCase(),
         address => p[ProfileField.address],
         zip => p[ProfileField.zip],
@@ -62,6 +69,7 @@ enum FieldKind {
         // Per le scelte il valore è l'etichetta dell'opzione da spuntare.
         gender => p[ProfileField.gender].toUpperCase(),
         yesNo => '',
+        custom => '', // dai dati personalizzati del profilo, in base all'etichetta (vedi proposalValue)
         text => '',
       };
 }
