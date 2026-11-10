@@ -144,7 +144,7 @@ const Map<String, String> stringsEn = {
   'Penna': 'Pen',
   'Evidenzia': 'Highlight',
   'Sigla tutte': 'Initial all pages',
-  'Modulo già compilato: vuoi rimettere tutto come in "{0}"?': 'Form filled in before: put everything back as in "{0}"?',
+  'Modulo già compilato: vuoi rimettere tutto come in "{0}"?': 'You filled in this form before: restore everything as in "{0}"?',
   'No': 'No',
   'Applica': 'Apply',
   '• Blu': '• Blue',
