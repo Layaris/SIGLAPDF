@@ -98,7 +98,9 @@ jobs:
         with:
           name: apk
           path: Sigla-build-${{ env.BUILD_NUMBER }}.apk
-          retention-days: 7
+          # Con "Pubblica" acceso il file serve solo al job publish (poi resta nella release su
+          # DMReleases): 1 giorno. Con "Pubblica" spento è l'unica copia: 7 giorni per scaricarla.
+          retention-days: ${{ inputs.publish && 1 || 7 }}
 
   ios:
     name: IPA iPhone (non firmato)
@@ -128,7 +130,9 @@ jobs:
         with:
           name: ipa
           path: Sigla-build-${{ env.BUILD_NUMBER }}.ipa
-          retention-days: 7
+          # Con "Pubblica" acceso il file serve solo al job publish (poi resta nella release su
+          # DMReleases): 1 giorno. Con "Pubblica" spento è l'unica copia: 7 giorni per scaricarla.
+          retention-days: ${{ inputs.publish && 1 || 7 }}
 
   publish:
     name: Pubblica su DMReleases

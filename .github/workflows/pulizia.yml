@@ -1,0 +1,87 @@
+# Pulizia degli artifact delle Actions (Actions › Pulizia › Run workflow).
+# Tiene solo l'ultimo artifact di ogni tipo che serve e cancella tutti gli altri:
+#   apk                  ultimo APK (release.yml)                  → si tiene l'ultimo
+#   ipa                  ultimo IPA (release.yml)                  → si tiene l'ultimo
+#   sigla-chiave-backup  copia della chiave di firma (keystore.yml) → si cancella sempre:
+#                        il repository è pubblico e la chiave sta già sul PC
+#   qualunque altro nome copia intermedia                           → si cancella sempre
+# Non tocca branch, release né il codice: solo gli artifact.
+name: Pulizia
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write   # serve per cancellare gli artifact
+
+concurrency:
+  group: pulizia
+  cancel-in-progress: false
+
+jobs:
+  pulizia:
+    name: Pulizia artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+      # Tipi di cui si tiene l'ultimo (nomi separati da spazi, come in upload-artifact).
+      DA_TENERE: "apk ipa"
+    steps:
+      - name: Tiene l'ultimo di ogni tipo e cancella il resto
+        run: |
+          set -euo pipefail
+
+          # Tutti gli artifact non scaduti, dal più recente al più vecchio.
+          gh api --paginate "repos/$REPO/actions/artifacts?per_page=100" --jq '.artifacts[]' \
+            | jq -s 'map(select(.expired == false)) | sort_by(.created_at) | reverse' > artifact.json
+
+          totale=$(jq 'length' artifact.json)
+          echo "Artifact non scaduti: $totale"
+          echo
+
+          visti=" "
+          liberati=0
+          tenuti=0
+          cancellati=0
+          errori=0
+          {
+            echo "## Pulizia artifact"
+            echo
+            echo "| Esito | Nome | Creato | MB |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          while IFS=$'\t' read -r id nome creato byte; do
+            mb=$(awk -v b="$byte" 'BEGIN { printf "%.1f", b / 1048576 }')
+            if [[ " $DA_TENERE " == *" $nome "* && "$visti" != *" $nome "* ]]; then
+              # Primo (cioè il più recente) di un tipo che serve: si tiene.
+              visti="$visti$nome "
+              tenuti=$((tenuti + 1))
+              echo "TENGO     $nome  ($creato, $mb MB)"
+              echo "| tenuto | $nome | $creato | $mb |" >> "$GITHUB_STEP_SUMMARY"
+            elif gh api -X DELETE "repos/$REPO/actions/artifacts/$id" > /dev/null; then
+              # Copie più vecchie, chiave di firma e copie intermedie: si cancellano.
+              liberati=$((liberati + byte))
+              cancellati=$((cancellati + 1))
+              echo "CANCELLO  $nome  ($creato, $mb MB)"
+              echo "| cancellato | $nome | $creato | $mb |" >> "$GITHUB_STEP_SUMMARY"
+            else
+              errori=$((errori + 1))
+              echo "::warning::Non riesco a cancellare $nome (id $id)"
+              echo "| errore | $nome | $creato | $mb |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done < <(jq -r '.[] | [.id, .name, .created_at, .size_in_bytes] | @tsv' artifact.json)
+
+          mb_liberati=$(awk -v b="$liberati" 'BEGIN { printf "%.1f", b / 1048576 }')
+          echo
+          echo "Tenuti: $tenuti · Cancellati: $cancellati · Spazio liberato: $mb_liberati MB"
+          {
+            echo
+            echo "**Tenuti:** $tenuti · **Cancellati:** $cancellati · **Spazio liberato:** $mb_liberati MB"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$errori" -gt 0 ]; then
+            echo "::error::$errori artifact non cancellati"
+            exit 1
+          fi
