@@ -7,7 +7,7 @@ import '../../../core/utils/pdf_coords.dart';
 
 /// Tipi di elemento posizionabile sopra la pagina.
 enum ElementType {
-  signature('Firma'),
+  signature('Firma|nome'),
   initials('Sigla'),
   signedDate('Firma con data'),
   text('Testo'),

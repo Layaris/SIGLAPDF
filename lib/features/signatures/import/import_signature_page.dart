@@ -8,6 +8,7 @@ import '../../../core/app_services.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/signature_processing.dart';
+import '../../../services/temp_files.dart';
 import '../signature_model.dart';
 import '../widgets/save_signature_dialog.dart';
 
@@ -72,6 +73,7 @@ class _ImportSignaturePageState extends State<ImportSignaturePage> {
             maxHeight: 2400,
           );
           bytes = await x?.readAsBytes();
+          await deleteTempFile(x?.path); // copia temporanea della foto
       }
     } catch (e) {
       _error = tr('Impossibile aprire l\'immagine.');

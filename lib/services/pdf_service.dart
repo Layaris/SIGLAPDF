@@ -357,13 +357,15 @@ String sanitizeForStandardFont(String s) {
     '‘': "'", '’': "'", '“': '"', '”': '"', // virgolette curve: presenti in WinAnsi ma
     '–': '-', '—': '-', '…': '...', ' ': ' ', //   normalizzate per sicurezza
     '✓': 'v', '✔': 'v', '✗': 'x', '✘': 'x',
+    // Il font standard del PDF non scrive l'euro (spariva): si scrive "EUR".
+    '€': 'EUR',
   };
   final b = StringBuffer();
   for (final rune in s.runes) {
     final ch = String.fromCharCode(rune);
     if (replacements.containsKey(ch)) {
       b.write(replacements[ch]);
-    } else if (rune == 0x20AC || (rune >= 0x20 && rune <= 0x7E) || (rune >= 0xA0 && rune <= 0xFF)) {
+    } else if ((rune >= 0x20 && rune <= 0x7E) || (rune >= 0xA0 && rune <= 0xFF)) {
       b.write(ch);
     } else if (rune == 0x0A || rune == 0x09) {
       b.write(' ');

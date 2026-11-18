@@ -65,7 +65,7 @@ class DeviceFieldDetector implements FieldDetector {
         if (words < minWords) {
           scanned.add(p);
         } else {
-          out.addAll(detectFieldsInLines(lines, input.pages[p], p, source: name));
+          out.addAll(detectFieldsInLines(lines, input.pages[p], p, source: name, extraLabels: input.extraLabels));
         }
       }
     } finally {
@@ -80,8 +80,15 @@ class DeviceFieldDetector implements FieldDetector {
     return out.where((f) => !input.avoid.any((a) => a.$1 == f.page && _overlaps(a.$2.toRect(const Size(1, 1)), f.rect.toRect(const Size(1, 1))))).toList();
   }
 
+  /// Lato lungo massimo dell'immagine per l'OCR: un A4 a 200 dpi è ~2300 px; le pagine più grandi
+  /// si renderizzano a meno dpi (a 200 dpi un poster occuperebbe centinaia di MB di memoria).
+  static const maxOcrSidePx = 2800.0;
+
   Future<List<DetectedField>> _ocrPage(OcrEngine engine, DetectionInput input, int p) async {
-    final img = await _raster(input.pdf, p, ocrDpi);
+    final v = input.pages[p].visual;
+    final longestPt = v.width > v.height ? v.width : v.height;
+    final dpi = longestPt <= 0 ? ocrDpi : (maxOcrSidePx / (longestPt / 72)).clamp(72.0, ocrDpi);
+    final img = await _raster(input.pdf, p, dpi);
     if (img == null || img.width == 0) return const [];
     final lines = await engine.recognize(img.pixels, img.width, img.height);
     // Pixel → punti della pagina visiva.
@@ -96,7 +103,7 @@ class DeviceFieldDetector implements FieldDetector {
               WordBox(w.text, Rect.fromLTRB(w.rect.left * sx, w.rect.top * sy, w.rect.right * sx, w.rect.bottom * sy)),
         ],
     ]..sort((a, b) => (a.isEmpty ? 0 : a.first.rect.top).compareTo(b.isEmpty ? 0 : b.first.rect.top));
-    return detectFieldsInLines(boxes.where((l) => l.isNotEmpty).toList(), info, p, source: 'OCR');
+    return detectFieldsInLines(boxes.where((l) => l.isNotEmpty).toList(), info, p, source: 'OCR', extraLabels: input.extraLabels);
   }
 
   static bool _overlaps(Rect a, Rect b) {

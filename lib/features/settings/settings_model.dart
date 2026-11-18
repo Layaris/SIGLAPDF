@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// Impostazioni dell'app. La chiave API resta solo sul dispositivo e non va nel backup.
+import '../../services/field_detection/ai_detector.dart';
+
+/// Impostazioni dell'app. Le chiavi API restano solo sul dispositivo e non vanno nel backup.
 @immutable
 class AppSettings {
   const AppSettings({
@@ -11,6 +13,11 @@ class AppSettings {
     this.aiEnabled = false,
     this.aiApiKey = '',
     this.aiModel = defaultAiModel,
+    this.aiMode = 'auto',
+    this.geminiApiKey = '',
+    this.geminiModel = '',
+    this.nanoGptApiKey = '',
+    this.nanoGptModel = '',
     this.keepRecents = true,
     this.checkUpdates = true,
     this.language = 'it',
@@ -25,6 +32,32 @@ class AppSettings {
   final bool aiEnabled;
   final String aiApiKey;
   final String aiModel;
+
+  /// Servizio AI: 'auto' (prima Gemini, poi NanoGPT, poi Claude, fra quelli con la chiave) oppure il nome
+  /// di un [AiProvider] per usare solo quello.
+  final String aiMode;
+  final String geminiApiKey;
+
+  /// Modello Gemini; vuoto = predefinito ([AiProvider.defaultModel]).
+  final String geminiModel;
+  final String nanoGptApiKey;
+  final String nanoGptModel;
+
+  /// Chiave e modello di un servizio.
+  AiAccess access(AiProvider p) => switch (p) {
+        AiProvider.gemini => AiAccess(p, geminiApiKey, geminiModel),
+        AiProvider.nanogpt => AiAccess(p, nanoGptApiKey, nanoGptModel),
+        AiProvider.anthropic => AiAccess(p, aiApiKey, aiModel),
+      };
+
+  /// Servizi da provare, in ordine, fra quelli con la chiave.
+  List<AiAccess> get aiChain {
+    final only = AiProvider.parse(aiMode);
+    return [
+      for (final p in only == null ? AiProvider.values : [only])
+        if (access(p).apiKey.trim().isNotEmpty) access(p),
+    ];
+  }
 
   /// Ricorda gli ultimi PDF esportati (solo sul dispositivo).
   final bool keepRecents;
@@ -43,6 +76,11 @@ class AppSettings {
     bool? aiEnabled,
     String? aiApiKey,
     String? aiModel,
+    String? aiMode,
+    String? geminiApiKey,
+    String? geminiModel,
+    String? nanoGptApiKey,
+    String? nanoGptModel,
     bool? keepRecents,
     bool? checkUpdates,
     String? language,
@@ -55,6 +93,11 @@ class AppSettings {
         aiEnabled: aiEnabled ?? this.aiEnabled,
         aiApiKey: aiApiKey ?? this.aiApiKey,
         aiModel: aiModel ?? this.aiModel,
+        aiMode: aiMode ?? this.aiMode,
+        geminiApiKey: geminiApiKey ?? this.geminiApiKey,
+        geminiModel: geminiModel ?? this.geminiModel,
+        nanoGptApiKey: nanoGptApiKey ?? this.nanoGptApiKey,
+        nanoGptModel: nanoGptModel ?? this.nanoGptModel,
         keepRecents: keepRecents ?? this.keepRecents,
         checkUpdates: checkUpdates ?? this.checkUpdates,
         language: language ?? this.language,
@@ -64,9 +107,11 @@ class AppSettings {
   Map<String, dynamic> toMap() => {
         ...toBackupMap(),
         'aiApiKey': aiApiKey,
+        'geminiApiKey': geminiApiKey,
+        'nanoGptApiKey': nanoGptApiKey,
       };
 
-  /// Mappa per il backup: senza la chiave API.
+  /// Mappa per il backup: senza le chiavi API.
   Map<String, dynamic> toBackupMap() => {
         'themeMode': themeMode.name,
         'inkColor': inkColor,
@@ -74,6 +119,9 @@ class AppSettings {
         'biometricLock': biometricLock,
         'aiEnabled': aiEnabled,
         'aiModel': aiModel,
+        'aiMode': aiMode,
+        'geminiModel': geminiModel,
+        'nanoGptModel': nanoGptModel,
         'keepRecents': keepRecents,
         'checkUpdates': checkUpdates,
         'language': language,
@@ -92,6 +140,11 @@ class AppSettings {
       aiEnabled: m['aiEnabled'] == true,
       aiApiKey: (m['aiApiKey'] as String?) ?? '',
       aiModel: (model == null || model.isEmpty) ? defaultAiModel : model,
+      aiMode: AiProvider.parse(m['aiMode'] as String?)?.name ?? 'auto',
+      geminiApiKey: (m['geminiApiKey'] as String?) ?? '',
+      geminiModel: ((m['geminiModel'] as String?) ?? '').trim(),
+      nanoGptApiKey: (m['nanoGptApiKey'] as String?) ?? '',
+      nanoGptModel: ((m['nanoGptModel'] as String?) ?? '').trim(),
       keepRecents: m['keepRecents'] != false,
       checkUpdates: m['checkUpdates'] != false,
       language: const {'it', 'en', 'system'}.contains(m['language']) ? m['language'] as String : 'it',

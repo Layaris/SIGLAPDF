@@ -46,7 +46,9 @@ class DetectedField {
 
 /// Dati per il rilevamento.
 class DetectionInput {
-  const DetectionInput({required this.pdf, required this.pages, this.pageIndexes, this.avoid = const []});
+  const DetectionInput({required this.pdf, required this.pages, this.pageIndexes, this.avoid = const [], this.extraLabels = const []});
+
+  /// Etichette dei dati personalizzati del profilo, da cercare oltre al dizionario.
 
   final Uint8List pdf;
   final List<PdfPageInfo> pages;
@@ -56,6 +58,8 @@ class DetectionInput {
 
   /// Riquadri da evitare (es. campi AcroForm già presenti), per pagina.
   final List<(int page, NormRect rect)> avoid;
+
+  final List<String> extraLabels;
 
   Iterable<int> get targetPages => pageIndexes ?? List.generate(pages.length, (i) => i);
 }

@@ -24,7 +24,12 @@ class AppServices {
     required this.updates,
     this.files = const SystemFileAccess(),
     this.ocr,
+    this.storageUnavailable = false,
   });
+
+  /// L'archivio sul dispositivo non si è aperto (memoria piena, navigazione privata…): l'app funziona
+  /// ma le modifiche di questa sessione non vengono salvate. Si mostra un avviso.
+  final bool storageUnavailable;
 
   final SettingsRepository settings;
   final SignatureRepository signatures;
@@ -45,6 +50,7 @@ class AppServices {
     bool isWeb = false,
     OcrEngine? ocr,
     UpdateService? updates,
+    bool storageUnavailable = false,
   }) {
     final settings = SettingsRepository(MemoryKeyValueStore());
     return AppServices(
@@ -57,6 +63,7 @@ class AppServices {
       updates: updates ?? UpdateService(MemoryKeyValueStore()),
       files: files,
       ocr: ocr,
+      storageUnavailable: storageUnavailable,
     );
   }
 }

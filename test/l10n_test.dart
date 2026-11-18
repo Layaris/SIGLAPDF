@@ -10,11 +10,21 @@ import 'package:sigla/core/l10n/strings_en.dart';
 /// Chiavi tr('...') e valori degli enum tradotti nel codice sorgente.
 Set<String> _sourceKeys() {
   final lit = r"'((?:[^'\\\n]|\\.)*)'";
+  final dq = r'"((?:[^"\\\n]|\\.)*)"';
   final keys = <String>{};
   for (final f in Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'))) {
     final s = f.readAsStringSync();
     for (final m in RegExp(r'\btr\(\s*' + lit).allMatches(s)) {
       keys.add(m.group(1)!);
+    }
+    // Anche le chiavi tra virgolette doppie e quelle dei plurali.
+    for (final m in RegExp(r'\btr\(\s*' + dq).allMatches(s)) {
+      keys.add(m.group(1)!);
+    }
+    for (final m in RegExp(r'\btrPlural\([^,]+,\s*' + lit + r'\s*,\s*' + lit).allMatches(s)) {
+      keys
+        ..add(m.group(1)!)
+        ..add(m.group(2)!);
     }
     if (s.contains('String get label => tr(_it)')) {
       for (final m in RegExp(r'^\s*\w+\(' + lit + r'\)[,;]', multiLine: true).allMatches(s)) {
@@ -32,6 +42,33 @@ void main() {
   test('ogni testo dell\'interfaccia ha la traduzione inglese', () {
     final missing = _sourceKeys().where((k) => !stringsEn.containsKey(k)).toList();
     expect(missing, isEmpty, reason: 'aggiungere in lib/core/l10n/strings_en.dart');
+  });
+
+  test('nessun testo visibile scritto senza tr()', () {
+    // Testi in italiano messi direttamente in Text(...) o label:/tooltip:/hintText: (restano italiani
+    // anche in inglese). Ammessi: il nome dell'app e i nomi delle lingue.
+    const allowed = {'Italiano', 'English', 'sk-ant-…'};
+    final bad = <String>[];
+    final re = RegExp(r"""(?:\bText\(\s*|\b(?:label|tooltip|hintText|labelText|semanticsLabel|title):\s*)'([^'$]*[a-zàèéìòù]{3}[^'$]*)'""");
+    for (final f in Directory('lib').listSync(recursive: true).whereType<File>().where((f) => f.path.endsWith('.dart'))) {
+      if (f.path.contains('l10n')) continue;
+      for (final m in re.allMatches(f.readAsStringSync())) {
+        // "Sigla" è anche il nome dell'app: ammesso solo come titolo (Text('Sigla')), non come strumento.
+        final brand = m.group(1) == 'Sigla' && (m.group(0)!.startsWith('Text(') || m.group(0)!.startsWith('title:'));
+        if (!allowed.contains(m.group(1)) && !brand) bad.add('${f.path}: ${m.group(1)}');
+      }
+    }
+    expect(bad, isEmpty, reason: 'usare tr(...)');
+  });
+
+  test('tr: contesto dopo "|" e un solo passaggio di sostituzione', () {
+    expect(tr('Annulla|modifica'), 'Annulla');
+    expect(tr('Copiato su {0} pagine', ['{1}', 'x']), 'Copiato su {1} pagine');
+    expect(trPlural(1, 'Copiato su 1 pagina', 'Copiato su {0} pagine'), 'Copiato su 1 pagina');
+    L10n.lang = 'en';
+    expect(tr('Annulla|modifica'), 'Undo');
+    expect(tr('Annulla'), 'Cancel');
+    expect(tr('Firma|nome'), 'Signature');
   });
 
   test('segnaposto uguali nelle due lingue', () {

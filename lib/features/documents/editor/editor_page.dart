@@ -9,7 +9,7 @@ import 'package:printing/printing.dart';
 import '../../../core/app_services.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../services/field_detection/anthropic_detector.dart';
+import '../../../services/field_detection/ai_detector.dart';
 import '../../../services/field_detection/device_detector.dart';
 import '../../../services/field_detection/field_detector.dart';
 import '../../../services/pdf_service.dart';
@@ -215,13 +215,7 @@ class EditorPageState extends State<EditorPage> {
     });
     if (page < 0 || pts.length < 2) return;
     final info = ctrl.info.pages[page];
-    final e = inkElementFromStroke(
-      pts,
-      page: page,
-      color: _penColor ?? _inkColor,
-      inkWidth: _penWidth,
-      pageAspect: info.aspectRatio,
-    );
+    final e = inkElementFromStroke(pts, page: page, color: _penColor ?? _inkColor, inkWidth: _penWidth, pageAspect: info.aspectRatio);
     if (e != null) ctrl.addElement(e, select: false);
   }
 
@@ -233,11 +227,7 @@ class EditorPageState extends State<EditorPage> {
     ctrl.add(
       type: kind == SignatureKind.initials ? ElementType.initials : ElementType.signature,
       page: page,
-      rect: f.imageRect(
-        chosen.aspectRatio,
-        widthPts: kind == SignatureKind.initials ? 70 : 160,
-        center: _freeCenter(page),
-      ),
+      rect: f.imageRect(chosen.aspectRatio, widthPts: kind == SignatureKind.initials ? 70 : 160, center: _freeCenter(page)),
       image: chosen.png,
     );
   }
@@ -271,10 +261,7 @@ class EditorPageState extends State<EditorPage> {
                           height: 90,
                           child: SignatureImage(signature: s, padding: const EdgeInsets.all(12)),
                         ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Text(s.isDefault ? tr('{0} · predefinita', [s.name]) : s.name),
-                        ),
+                        Padding(padding: const EdgeInsets.all(12), child: Text(s.isDefault ? tr('{0} · predefinita', [s.name]) : s.name)),
                       ],
                     ),
                   ),
@@ -366,9 +353,7 @@ class EditorPageState extends State<EditorPage> {
       _snack(tr('Aggiungi prima firma, testi o data: il modello ricorda dove li hai messi'));
       return;
     }
-    final base = ctrl.fileName
-        .replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '')
-        .replaceAll(RegExp(r'_(firmato|signed)$'), '');
+    final base = ctrl.fileName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '').replaceAll(RegExp(r'_(firmato|signed)$'), '');
     final name = await showTextInputDialog(
       context,
       title: tr('Salva come modello'),
@@ -433,11 +418,9 @@ class EditorPageState extends State<EditorPage> {
                 leading: const Icon(Icons.dashboard_customize_outlined),
                 title: Text(t.name),
                 subtitle: Text(
-                  '${tr('{0} elementi', [t.elements.length])} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}',
+                  '${trPlural(t.elements.length, '1 elemento', '{0} elementi')} · ${t.pageCount == 1 ? tr('1 pagina') : tr('{0} pagine', [t.pageCount])}',
                 ),
-                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint
-                    ? Text(tr('Questo modulo'))
-                    : null,
+                trailing: t.fingerprint != null && t.fingerprint == ctrl.info.fingerprint ? Text(tr('Questo modulo')) : null,
                 onTap: () => Navigator.pop(context, t),
               ),
           ],
@@ -466,9 +449,7 @@ class EditorPageState extends State<EditorPage> {
         builder: (_) => PopScope(
           canPop: false,
           child: AlertDialog(
-            content: Row(
-              children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Preparo il PDF…'))],
-            ),
+            content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Preparo il PDF…'))]),
           ),
         ),
       ),
@@ -529,10 +510,7 @@ class EditorPageState extends State<EditorPage> {
                 ],
               ),
               const SizedBox(height: 4),
-              Text(
-                tr('Firme e testi sono stati fissati nel documento.'),
-                style: TextStyle(color: AppColors.of(sheet).secondary),
-              ),
+              Text(tr('Firme e testi sono stati fissati nel documento.'), style: TextStyle(color: AppColors.of(sheet).secondary)),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () async {
@@ -626,7 +604,7 @@ class EditorPageState extends State<EditorPage> {
     _snack(
       values.isEmpty
           ? tr('Nessun campo da compilare con il profilo')
-          : tr('Compilati {0} campi dal profilo', [values.length]),
+          : trPlural(values.length, 'Compilato 1 campo dal profilo', 'Compilati {0} campi dal profilo'),
     );
   }
 
@@ -670,6 +648,7 @@ class EditorPageState extends State<EditorPage> {
     final s = services.settings.value;
     final device = DeviceFieldDetector(ocr: services.ocr);
     if (!s.aiEnabled) return [device];
+    final chain = s.aiChain;
     final useAi = await showModalBottomSheet<bool>(
       context: context,
       builder: (context) => SafeArea(
@@ -695,7 +674,11 @@ class EditorPageState extends State<EditorPage> {
                 leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text(tr('AI avanzata')),
                 subtitle: Text(
-                  tr('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.'),
+                  chain.isEmpty
+                      ? tr('Manca la chiave: inseriscila in Impostazioni › Riconoscimento AI.')
+                      : tr('Insieme alla ricerca sul dispositivo. Le pagine vengono inviate come immagini a {0}.', [
+                          chain.map((a) => a.provider.label).join(tr(' o poi a ')),
+                        ]),
                 ),
                 onTap: () => Navigator.pop(context, true),
               ),
@@ -706,11 +689,12 @@ class EditorPageState extends State<EditorPage> {
     );
     if (useAi == null) return null;
     if (!useAi) return [device];
-    if (s.aiApiKey.trim().isEmpty) {
+    if (chain.isEmpty) {
       _snack(tr('Inserisci la chiave API in Impostazioni › Riconoscimento AI'));
       return null;
     }
-    return [AnthropicFieldDetector(apiKey: s.aiApiKey, model: s.aiModel)];
+    // Prima il dispositivo (posizioni esatte dal testo del PDF), poi l'AI per quello che manca.
+    return [device, AiFieldDetector(chain: chain)];
   }
 
   /// "Compila automaticamente": trova i campi non segnalati e mostra l'anteprima.
@@ -727,14 +711,12 @@ class EditorPageState extends State<EditorPage> {
         builder: (_) => PopScope(
           canPop: false,
           child: AlertDialog(
-            content: Row(
-              children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Cerco i campi…'))],
-            ),
+            content: Row(children: [const CircularProgressIndicator(), const SizedBox(width: 20), Text(tr('Cerco i campi…'))]),
           ),
         ),
       ),
     );
-    final found = <DetectedField>[];
+    var found = <DetectedField>[];
     String? error;
     final avoid = [
       for (final f in ctrl.info.fields)
@@ -742,7 +724,20 @@ class EditorPageState extends State<EditorPage> {
     ];
     for (final d in detectors) {
       try {
-        found.addAll(await d.detect(DetectionInput(pdf: ctrl.bytes, pages: ctrl.info.pages, avoid: avoid)));
+        final got = await d.detect(
+            DetectionInput(
+              pdf: ctrl.bytes,
+              pages: ctrl.info.pages,
+              avoid: avoid,
+              // Dati personalizzati di tutti i profili ("Patente", "Cittadinanza"…): si riconoscono anche loro.
+              extraLabels: {
+                for (final p in services.profile.profiles)
+                  for (final c in p.profile.custom)
+                    if (c.key.isNotEmpty) c.key,
+              }.toList(),
+            ),
+          );
+        found = d is AiFieldDetector ? mergeDetections(found, got) : [...found, ...got];
       } on AiDetectionException catch (e) {
         error = e.message;
       } on PdfOpenException catch (e) {
@@ -753,6 +748,12 @@ class EditorPageState extends State<EditorPage> {
     }
     nav.pop();
     if (!mounted) return;
+    // Pagine non analizzate dall'AI (errore a metà o oltre il limite): lo si dice nell'anteprima.
+    final aiWarning = [
+      ...detectors.whereType<AiFieldDetector>().map((d) => d.lastWarning).whereType<String>(),
+      // L'AI non ha risposto ma il dispositivo ha trovato qualcosa: si mostra quello, dicendolo.
+      if (error != null && found.isNotEmpty) tr('Riconoscimento AI non riuscito: {0}', [error]),
+    ].join('\n').ifEmptyNull;
     if (found.isEmpty) {
       _snack(
         error ??
@@ -773,7 +774,10 @@ class EditorPageState extends State<EditorPage> {
           profiles: services.profile.profiles,
           initialProfileId: services.profile.activeId,
           today: todayText(),
-          note: profile.isEmpty ? tr('Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.') : null,
+          note: [
+            ?aiWarning,
+            if (profile.isEmpty) tr('Il profilo è vuoto: puoi scrivere i valori qui o compilare il profilo.'),
+          ].join('\n').ifEmptyNull,
         ),
       ),
     );
@@ -866,16 +870,8 @@ class EditorPageState extends State<EditorPage> {
               appBar: AppBar(
                 title: Text(ctrl.fileName, overflow: TextOverflow.ellipsis),
                 actions: [
-                  IconButton(
-                    tooltip: tr('Annulla'),
-                    onPressed: ctrl.canUndo ? ctrl.undo : null,
-                    icon: const Icon(Icons.undo),
-                  ),
-                  IconButton(
-                    tooltip: tr('Ripeti'),
-                    onPressed: ctrl.canRedo ? ctrl.redo : null,
-                    icon: const Icon(Icons.redo),
-                  ),
+                  IconButton(tooltip: tr('Annulla|modifica'), onPressed: ctrl.canUndo ? ctrl.undo : null, icon: const Icon(Icons.undo)),
+                  IconButton(tooltip: tr('Ripeti'), onPressed: ctrl.canRedo ? ctrl.redo : null, icon: const Icon(Icons.redo)),
                   PopupMenuButton<String>(
                     tooltip: tr('Altro'),
                     onSelected: (v) => v == 'save' ? saveTemplate() : chooseTemplate(),
@@ -904,12 +900,7 @@ class EditorPageState extends State<EditorPage> {
                       ],
                     ),
                   ),
-                  if (_drawMode)
-                    _penBar()
-                  else if (ctrl.selected != null)
-                    _selectionBar(ctrl.selected!)
-                  else
-                    _toolbar(),
+                  if (_drawMode) _penBar() else if (ctrl.selected != null) _selectionBar(ctrl.selected!) else _toolbar(),
                 ],
               ),
             ),
@@ -979,9 +970,7 @@ class EditorPageState extends State<EditorPage> {
                                 behavior: HitTestBehavior.opaque,
                                 onPanStart: (d) => setState(() {
                                   _livePage = i;
-                                  _liveStroke = [
-                                    Offset(d.localPosition.dx / size.width, d.localPosition.dy / size.height),
-                                  ];
+                                  _liveStroke = [Offset(d.localPosition.dx / size.width, d.localPosition.dy / size.height)];
                                 }),
                                 onPanUpdate: (d) {
                                   if (_livePage != i) return;
@@ -1011,28 +1000,34 @@ class EditorPageState extends State<EditorPage> {
             );
           },
         );
+        // Con un foglio o un dialogo aperto sopra (es. "Scegli la firma") il documento non deve scorrere
+        // con la rotellina: la firma finirebbe su un'altra pagina.
+        final onTop = ModalRoute.of(context)?.isCurrent ?? true;
         return Stack(
           children: [
             Positioned.fill(
               // Zoom con due dita (touch) e con Ctrl + rotella (mouse).
-              child: Listener(
-                onPointerDown: (e) => _pointerDown(e.pointer, e.position),
-                onPointerMove: (e) => _pointerMove(e.pointer, e.position),
-                onPointerUp: (e) => _pointerUp(e.pointer),
-                onPointerCancel: (e) => _pointerUp(e.pointer),
-                onPointerSignal: _pointerSignal,
-                // Un tocco fuori dalla pagina deseleziona (i tocchi su pagina ed elementi vincono prima).
-                child: GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onTap: () => ctrl.select(null),
-                  child: ColoredBox(
-                    color: c.paper,
-                    child: totalWidth > constraints.maxWidth
-                        ? SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(width: totalWidth, child: list),
-                          )
-                        : list,
+              child: IgnorePointer(
+                ignoring: !onTop,
+                child: Listener(
+                  onPointerDown: (e) => _pointerDown(e.pointer, e.position),
+                  onPointerMove: (e) => _pointerMove(e.pointer, e.position),
+                  onPointerUp: (e) => _pointerUp(e.pointer),
+                  onPointerCancel: (e) => _pointerUp(e.pointer),
+                  onPointerSignal: _pointerSignal,
+                  // Un tocco fuori dalla pagina deseleziona (i tocchi su pagina ed elementi vincono prima).
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.translucent,
+                    onTap: () => ctrl.select(null),
+                    child: ColoredBox(
+                      color: c.paper,
+                      child: totalWidth > constraints.maxWidth
+                          ? SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: SizedBox(width: totalWidth, child: list),
+                            )
+                          : list,
+                    ),
                   ),
                 ),
               ),
@@ -1071,8 +1066,7 @@ class EditorPageState extends State<EditorPage> {
   }
 
   void _pointerSignal(PointerSignalEvent e) {
-    if (e is PointerScrollEvent &&
-        (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
+    if (e is PointerScrollEvent && (HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isMetaPressed)) {
       _setZoom(_zoom * (e.scrollDelta.dy > 0 ? 0.9 : 1.1));
     }
   }
@@ -1237,8 +1231,8 @@ class EditorPageState extends State<EditorPage> {
   }
 
   Widget _toolbar() => _bar([
-    _ToolButton(icon: Icons.gesture, label: tr('Firma'), onTap: () => addSignature(SignatureKind.signature)),
-    _ToolButton(icon: Icons.short_text, label: 'Sigla', onTap: () => addSignature(SignatureKind.initials)),
+    _ToolButton(icon: Icons.gesture, label: tr('Firma|nome'), onTap: () => addSignature(SignatureKind.signature)),
+    _ToolButton(icon: Icons.short_text, label: tr('Sigla'), onTap: () => addSignature(SignatureKind.initials)),
     _ToolButton(icon: Icons.edit_calendar_outlined, label: tr('Firma e data'), onTap: addSignedDate),
     _ToolButton(icon: Icons.title, label: tr('Testo'), onTap: addText),
     _ToolButton(icon: Icons.today_outlined, label: tr('Data'), onTap: addDate),
@@ -1292,7 +1286,7 @@ class EditorPageState extends State<EditorPage> {
       width(0.0025, tr('Fine')),
       width(0.004, tr('Media')),
       width(0.007, tr('Spessa')),
-      _ToolButton(icon: Icons.undo, label: tr('Annulla'), onTap: ctrl.undo),
+      _ToolButton(icon: Icons.undo, label: tr('Annulla|modifica'), onTap: ctrl.undo),
       _ToolButton(icon: Icons.done, label: tr('Fatto'), onTap: _toggleDraw),
     ]);
   }
@@ -1319,7 +1313,7 @@ class EditorPageState extends State<EditorPage> {
         label: tr('Su tutte'),
         onTap: () {
           final n = ctrl.replicateOnAllPages(e);
-          _snack(n == 0 ? tr('Già presente su tutte le pagine') : tr('Copiato su {0} pagine', [n]));
+          _snack(n == 0 ? tr('Già presente su tutte le pagine') : trPlural(n, 'Copiato su 1 pagina', 'Copiato su {0} pagine'));
         },
       ),
     _ToolButton(icon: Icons.delete_outline, label: tr('Elimina'), onTap: () => ctrl.remove(e.id)),
@@ -1367,4 +1361,8 @@ class _ToolButton extends StatelessWidget {
       ),
     );
   }
+}
+
+extension on String {
+  String? get ifEmptyNull => isEmpty ? null : this;
 }

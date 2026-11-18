@@ -33,7 +33,7 @@ Legenda: ✅ fatto · 🔶 in corso · ⬜ da fare
 - ✅ Riconoscimento locale dei campi non segnalati con anteprima
 
 ## Fase 6 — Extra
-- ✅ Riconoscimento AI opzionale (API Anthropic)
+- ✅ Riconoscimento AI opzionale (Google Gemini, NanoGPT, Anthropic; passaggio automatico al successivo)
 - ✅ Backup cifrato .sigla (unisci / sostituisci)
 - ✅ Blocco biometrico delle firme (mobile)
 - ✅ Scanner documenti (mobile) e immagini → PDF (web)

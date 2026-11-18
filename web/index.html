@@ -31,6 +31,46 @@
   </style>
 </head>
 <body>
+  <script>
+    // Service worker (sigla_sw.js): dopo la prima apertura l'app si apre anche senza internet.
+    // Una versione nuova si prepara in sottofondo e si attiva qui all'apertura dopo, tutta insieme
+    // (la pagina si ricarica una volta da sola); se è pronta nei primi secondi, subito.
+    if ('serviceWorker' in navigator) {
+      var hadController = !!navigator.serviceWorker.controller;
+      var reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (!hadController || reloaded) return; // alla primissima apertura non serve ricaricare
+        reloaded = true;
+        window.location.reload();
+      });
+      window.addEventListener('load', function () {
+        var started = Date.now();
+        navigator.serviceWorker.register('sigla_sw.js').then(function (reg) {
+          if (!hadController) {
+            // Prima apertura: i file già caricati (motore grafico, font) vanno nella copia.
+            navigator.serviceWorker.ready.then(function (r) {
+              var send = function () {
+                var urls = performance.getEntriesByType('resource').map(function (e) { return e.name; });
+                if (r.active) r.active.postMessage({ type: 'sigla-cache', urls: urls });
+              };
+              if (document.body.dataset.siglaReady) send();
+              else window.addEventListener('flutter-first-frame', send, { once: true });
+            });
+            return;
+          }
+          if (reg.waiting) reg.waiting.postMessage('sigla-activate');
+          reg.addEventListener('updatefound', function () {
+            var w = reg.installing;
+            if (!w) return;
+            w.addEventListener('statechange', function () {
+              if (w.state === 'installed' && Date.now() - started < 10000) w.postMessage('sigla-activate');
+            });
+          });
+        }).catch(function () {});
+      });
+    }
+  </script>
+  <script>window.addEventListener('flutter-first-frame', function () { document.body.dataset.siglaReady = '1'; });</script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

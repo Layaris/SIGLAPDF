@@ -5,7 +5,7 @@ import '../../core/l10n/l10n.dart';
 
 /// Firma completa o sigla (iniziali).
 enum SignatureKind {
-  signature('Firma'),
+  signature('Firma|nome'),
   initials('Sigla');
 
   const SignatureKind(this._it);
@@ -92,7 +92,7 @@ class Signature {
     };
     return Signature(
       id: m['id'] as String,
-      name: (m['name'] as String?)?.trim().isNotEmpty == true ? (m['name'] as String).trim() : tr('Firma'),
+      name: (m['name'] as String?)?.trim().isNotEmpty == true ? (m['name'] as String).trim() : tr('Firma|nome'),
       kind: SignatureKind.parse(m['kind']),
       source: SignatureSource.parse(m['source']),
       png: png,

@@ -2,7 +2,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:sigla/core/app_services.dart';
+import 'package:sigla/core/l10n/l10n.dart';
 import 'package:sigla/core/storage/key_value_store.dart';
 import 'package:sigla/features/documents/documents_page.dart';
 import 'package:sigla/features/documents/editor/editor_controller.dart';
@@ -91,6 +93,20 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('PDF pronto'), findsOneWidget);
     expect(s.recents.all.single.name, 'modulo_firmato.pdf', reason: 'niente _firmato_firmato');
+    await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('in inglese la data dei recenti ha il mese in inglese', (tester) async {
+    await initializeDateFormatting('en_US');
+    await initializeDateFormatting('it_IT');
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    final s = AppServices.inMemory();
+    await s.recents.add(name: 'a.pdf', pdf: buildPlainPdf(pages: 1), pageCount: 1, now: DateTime(2026, 5, 8, 10, 30));
+    L10n.lang = 'en';
+    await tester.pumpWidget(wrapWithServices(s, const DocumentsPage()));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.textContaining('8 May 2026'), findsOneWidget, reason: 'prima "8 mag 2026"');
+    L10n.lang = 'it';
     await tester.binding.setSurfaceSize(null);
   });
 }

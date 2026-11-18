@@ -74,8 +74,13 @@ Interfaccia `FieldDetector` → `Future<List<DetectedField>> detect(DetectionInp
 - `DeviceFieldDetector` (quello usato dall'app): per le pagine con testo usa la stessa logica del
   motore locale; per le pagine scansionate, su Android, renderizza la pagina e la legge con l'OCR
   di Google ML Kit sul telefono, poi applica il dizionario alle parole lette. Niente rete.
-- `AnthropicFieldDetector`: render della pagina in PNG e richiesta all'API Messages; la
-  risposta deve essere solo JSON con etichetta, tipo e riquadro normalizzato.
+- `AiFieldDetector` (`ai_detector.dart`): render della pagina in PNG e richiesta a uno dei servizi
+  con la chiave dell'utente: Google Gemini (`generateContent`, schema nativo con `box_2d` 0–1000,
+  150 dpi), NanoGPT (formato OpenAI, schema scritto nel testo, come PackSnap) o Anthropic (API
+  Messages con `output_config.format`, 110 dpi). La catena (`AppSettings.aiChain`) prova i servizi
+  in ordine e passa al successivo se uno fallisce. Nell'editor i campi dell'AI si uniscono a quelli
+  del dispositivo (`mergeDetections`: si tengono le posizioni del dispositivo, l'AI aggiunge il resto).
+  `AnthropicFieldDetector` è la stessa cosa con il solo Claude.
 
 I risultati passano sempre da un'anteprima in cui l'utente conferma, corregge o scarta.
 
@@ -120,7 +125,7 @@ File JSON in UTF-8 (l'envelope è in chiaro, il contenuto è cifrato):
 }
 ```
 
-- La chiave API Anthropic **non** è inclusa.
+- Le chiavi API (Anthropic, Gemini, NanoGPT) **non** sono incluse; all'import restano quelle del dispositivo.
 - **Versioni**: `version` è la versione dell'envelope, `schema` quella del contenuto.
   `BackupMigrations` porta un contenuto vecchio allo schema corrente prima dell'import.
   - Schema 1 (formato preliminare): firme con campo `type` (`draw|image|text`) e senza `kind`;
@@ -134,3 +139,17 @@ File JSON in UTF-8 (l'envelope è in chiaro, il contenuto è cifrato):
   i dati locali e usa quelli del backup (la chiave API resta).
 - Password sbagliata o file alterato → errore di autenticazione GCM → messaggio
   "Password errata o file danneggiato".
+
+## Web app senza internet
+
+- `web/sigla_sw.js` (scritto a mano: il service worker generato da Flutter 3.47 si cancella da solo):
+  pagina dalla rete con 3 s di tempo e poi dalla copia; file dell'app dalla copia della build
+  (`sigla-app-<build>`), rete solo se mancano; mai altri siti né `version.json`.
+- `tool/build_web.sh N` scrive il numero di build e l'elenco dei file da salvare subito (pdf.js, font,
+  icone, codice). Il motore grafico (canvaskit) si salva alla prima apertura: `index.html` manda al
+  service worker l'elenco dei file già caricati.
+- Versione nuova: si installa in sottofondo e aspetta; la attiva `index.html` all'apertura dopo (o subito
+  se è pronta nei primi 10 s) e la pagina si ricarica una volta, così file vecchi e nuovi non si mescolano.
+- `web/_headers` (Cloudflare Pages): `Cache-Control: no-cache` per `sigla_sw.js` e `version.json`.
+- Prova: `tool/e2e/offline.js` (rete spenta, rete appesa, server 500, versione nuova, nessuna richiesta
+  esterna); in `web.yml` prima della pubblicazione.

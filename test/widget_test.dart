@@ -15,4 +15,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Profilo'), findsOneWidget);
   });
+
+  testWidgets('archivio non disponibile: l\'app parte con un avviso invece di restare bianca', (tester) async {
+    await tester.pumpWidget(SiglaApp(services: AppServices.inMemory(storageUnavailable: true)));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Archivio non disponibile'), findsOneWidget);
+    expect(find.text('Documenti'), findsWidgets);
+  });
 }

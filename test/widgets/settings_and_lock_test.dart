@@ -120,11 +120,18 @@ void main() {
     await tester.tap(find.text('Usa il riconoscimento AI'));
     await tester.pumpAndSettle();
     expect(s.settings.value.aiEnabled, isTrue);
-    await tester.scrollUntilVisible(find.widgetWithText(TextField, 'Modello'), 200, scrollable: find.byType(Scrollable).first);
-    expect(find.textContaining("inviate come immagini all'API di Anthropic"), findsOneWidget);
-    await tester.enterText(find.widgetWithText(TextField, 'Chiave API Anthropic'), ' sk-ant-123 ');
+    expect(find.textContaining('Google Gemini, NanoGPT o Anthropic'), findsOneWidget);
+    expect(find.textContaining('Google può usare i contenuti'), findsOneWidget, reason: 'avviso sul livello gratuito di Gemini');
+    // Automatico: compaiono i tre servizi, nell'ordine in cui si provano.
+    await tester.scrollUntilVisible(find.widgetWithText(TextField, 'Chiave API Google Gemini'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.enterText(find.widgetWithText(TextField, 'Chiave API Google Gemini'), ' AIza-1 ');
+    await tester.scrollUntilVisible(find.widgetWithText(TextField, 'Chiave API Anthropic (Claude)'), 200, scrollable: find.byType(Scrollable).first);
+    await tester.enterText(find.widgetWithText(TextField, 'Chiave API Anthropic (Claude)'), ' sk-ant-123 ');
     expect(s.settings.value.aiApiKey, 'sk-ant-123');
+    expect(s.settings.value.geminiApiKey, 'AIza-1');
     expect(s.settings.value.aiModel, 'claude-haiku-5-5');
+    expect(s.settings.value.aiChain.map((a) => a.provider.name), ['gemini', 'anthropic']);
+    expect(find.widgetWithText(TextField, 'Chiave API NanoGPT'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.textContaining('firma elettronica semplice'), 300, scrollable: find.byType(Scrollable).first);
     expect(find.textContaining('eIDAS'), findsOneWidget);

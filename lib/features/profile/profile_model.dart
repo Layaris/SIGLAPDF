@@ -24,6 +24,7 @@ enum ProfileField {
   lastName('Cognome'),
   birthDate('Data di nascita'),
   birthPlace('Luogo di nascita'),
+  birthProvince('Provincia di nascita'),
   taxCode('Codice fiscale'),
   address('Indirizzo'),
   zip('CAP'),

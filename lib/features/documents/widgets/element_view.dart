@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/pdf_coords.dart';
+import '../../../services/pdf_service.dart';
 import '../models/placed_element.dart';
 
 /// Contenuto grafico di un elemento (senza cornice di selezione).
@@ -36,7 +37,7 @@ class ElementContent extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    element.text,
+                    sanitizeForStandardFont(element.text),
                     maxLines: 1,
                     style: TextStyle(
                       color: color,
@@ -60,7 +61,8 @@ class ElementContent extends StatelessWidget {
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
               child: Text(
-                element.text,
+                // Lo stesso testo che finirà nel PDF (es. "€" → "EUR"): l'anteprima non inganna.
+                sanitizeForStandardFont(element.text),
                 maxLines: 1,
                 softWrap: false,
                 style: TextStyle(

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:sigla/core/utils/pdf_coords.dart';
 import 'package:sigla/services/field_detection/anthropic_detector.dart';
 import 'package:sigla/services/field_detection/field_detector.dart';
 import 'package:sigla/services/field_detection/field_kind.dart';
@@ -66,7 +67,7 @@ void main() {
 
   test('errori HTTP tradotti in messaggi chiari', () async {
     for (final (code, text) in [
-      (401, 'Chiave API non valida'),
+      (401, 'non valida'),
       (429, 'Troppe richieste'),
       (529, 'non è disponibile'),
       (404, 'Modello non trovato'),
@@ -120,5 +121,55 @@ void main() {
     final d = AnthropicFieldDetector(apiKey: 'k', model: 'm', client: client, renderer: _fakePng, maxPages: 1);
     await d.detect(DetectionInput(pdf: pdf, pages: pages));
     expect(calls, 1);
+  });
+
+  test('errore a metà: le pagine già analizzate restano, con un avviso', () async {
+    var n = 0;
+    final client = MockClient((req) async {
+      n++;
+      if (n == 2) return http.Response('{"error":{"message":"boom"}}', 500);
+      return http.Response(jsonEncode(_reply([
+        {'label': 'Nome', 'kind': 'firstName', 'box': {'x0': 0.3, 'y0': 0.2, 'x1': 0.7, 'y1': 0.23}, 'options': <Object>[]},
+      ])), 200);
+    });
+    final d = AnthropicFieldDetector(apiKey: 'k', model: 'm', client: client, renderer: _fakePng);
+    final fields = await d.detect(DetectionInput(pdf: pdf, pages: pages));
+    expect(fields, hasLength(1), reason: 'prima si perdeva anche la pagina 1');
+    expect(d.lastWarning, contains('1 pagine su 2'));
+  });
+
+  test('oltre maxPages: avviso; campi compilabili esistenti esclusi; caselle di scelta', () async {
+    final client = MockClient((req) async => http.Response(jsonEncode(_reply([
+          {'label': 'Nome', 'kind': 'firstName', 'box': {'x0': 0.3, 'y0': 0.2, 'x1': 0.7, 'y1': 0.23}, 'options': <Object>[]},
+          {
+            'label': 'Sesso', 'kind': 'gender', 'box': {'x0': 0.1, 'y0': 0.5, 'x1': 0.3, 'y1': 0.52},
+            'options': [
+              {'label': 'M', 'box': {'x0': 0.1, 'y0': 0.5, 'x1': 0.12, 'y1': 0.52}},
+              {'label': 'Femmina', 'box': {'x0': 0.2, 'y0': 0.5, 'x1': 0.22, 'y1': 0.52}},
+            ],
+          },
+          {'label': 'Privacy', 'kind': 'yesNo', 'box': {'x0': 0.1, 'y0': 0.6, 'x1': 0.3, 'y1': 0.62}, 'options': <Object>[]},
+        ])), 200));
+    final d = AnthropicFieldDetector(apiKey: 'k', model: 'm', client: client, renderer: _fakePng, maxPages: 1);
+    final fields = await d.detect(DetectionInput(pdf: pdf, pages: pages, avoid: const [(0, NormRect(0.3, 0.2, 0.4, 0.03))]));
+    expect(d.lastWarning, contains('prime 1 pagine su 2'));
+    expect(fields.where((f) => f.kind == FieldKind.firstName), isEmpty, reason: 'sopra un campo compilabile già presente');
+    final g = fields.firstWhere((f) => f.kind == FieldKind.gender);
+    expect(g.options.map((o) => o.label), ['M', 'F']);
+    expect(fields.firstWhere((f) => f.label == 'Privacy').kind, FieldKind.text, reason: 'scelta senza caselle');
+  });
+
+  test('credito esaurito e risposta tagliata: messaggi chiari', () {
+    expect(AnthropicFieldDetector.errorMessage(402, '{}'), contains('Credito esaurito'));
+    expect(AnthropicFieldDetector.errorMessage(400, '{"error":{"message":"Your credit balance is too low"}}'), contains('Credito esaurito'));
+    expect(
+      () => AnthropicFieldDetector.parseResponse({
+        'stop_reason': 'max_tokens',
+        'content': [
+          {'type': 'text', 'text': '{"fields":[{"label":"Nome","kind":"first'},
+        ],
+      }, page: 0),
+      throwsA(isA<AiDetectionException>().having((e) => e.message, 'message', contains('incompleta'))),
+    );
   });
 }

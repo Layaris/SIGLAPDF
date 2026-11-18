@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/field_detection/label_dictionary.dart';
 import '../../../services/pdf_service.dart';
 import '../editor/editor_controller.dart';
 
@@ -71,7 +72,7 @@ class _FormFieldsSheetState extends State<_FormFieldsSheet> {
                     ),
                   ],
                 ),
-                Text(tr('{0} campi. Diventano testo fisso quando esporti il PDF.', [fields.length]), style: TextStyle(color: c.secondary)),
+                Text(trPlural(fields.length, '1 campo. Diventa testo fisso quando esporti il PDF.', '{0} campi. Diventano testo fisso quando esporti il PDF.'), style: TextStyle(color: c.secondary)),
                 const SizedBox(height: 16),
                 for (final f in fields) _field(f),
               ],
@@ -84,7 +85,9 @@ class _FormFieldsSheetState extends State<_FormFieldsSheet> {
 
   Widget _field(FormFieldInfo f) {
     final value = widget.controller.formValues[f.name] ?? '';
-    final label = f.page >= 0 ? tr('{0} · pag. {1}', [f.name, f.page + 1]) : f.name;
+    // Nome comprensibile ("Codice fiscale") invece di quello tecnico ("codice_fiscale"), se riconosciuto.
+    final name = kindForFieldName(f.name)?.label ?? f.name;
+    final label = f.page >= 0 ? tr('{0} · pag. {1}', [name, f.page + 1]) : name;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: switch (f.kind) {

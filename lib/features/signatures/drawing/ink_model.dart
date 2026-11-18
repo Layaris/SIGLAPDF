@@ -140,15 +140,25 @@ Rect? strokesBounds(List<InkStroke> strokes) {
   return r;
 }
 
-/// Disegno con cronologia per annulla/ripeti.
+/// Passo della cronologia del disegno: un tratto aggiunto, oppure "Cancella" (con i tratti tolti).
+class _InkOp {
+  const _InkOp.add(this.stroke) : cleared = null;
+  const _InkOp.clear(this.cleared) : stroke = null;
+  final InkStroke? stroke;
+  final List<InkStroke>? cleared;
+}
+
+/// Disegno con cronologia per annulla/ripeti. "Cancella" è un passo come gli altri:
+/// "Annulla" lo annulla e rimette tutti i tratti.
 class InkDrawing extends ChangeNotifier {
   final List<InkStroke> _strokes = [];
-  final List<InkStroke> _redo = [];
+  final List<_InkOp> _undo = [];
+  final List<_InkOp> _redo = [];
   InkStroke? _current;
 
   List<InkStroke> get strokes => [..._strokes, ?_current];
   bool get isEmpty => _strokes.isEmpty && _current == null;
-  bool get canUndo => _strokes.isNotEmpty;
+  bool get canUndo => _undo.isNotEmpty;
   bool get canRedo => _redo.isNotEmpty;
 
   void begin(InkPoint p, {required double width, required Color color}) {
@@ -167,29 +177,40 @@ class InkDrawing extends ChangeNotifier {
     final c = _current;
     if (c == null) return;
     _strokes.add(c);
+    _undo.add(_InkOp.add(c));
     _current = null;
     _redo.clear();
     notifyListeners();
   }
 
   void undo() {
-    if (_strokes.isEmpty) return;
-    _redo.add(_strokes.removeLast());
+    if (_undo.isEmpty) return;
+    final op = _undo.removeLast();
+    if (op.cleared != null) {
+      _strokes.addAll(op.cleared!);
+    } else if (_strokes.isNotEmpty) {
+      _strokes.removeLast();
+    }
+    _redo.add(op);
     notifyListeners();
   }
 
   void redo() {
     if (_redo.isEmpty) return;
-    _strokes.add(_redo.removeLast());
+    final op = _redo.removeLast();
+    if (op.cleared != null) {
+      _strokes.clear();
+    } else {
+      _strokes.add(op.stroke!);
+    }
+    _undo.add(op);
     notifyListeners();
   }
 
   void clear() {
     if (_strokes.isEmpty && _current == null) return;
-    // Cancella resta annullabile: i tratti finiscono nella pila di ripeti al contrario.
-    _redo
-      ..clear()
-      ..addAll(_strokes.reversed);
+    _undo.add(_InkOp.clear(List.of(_strokes)));
+    _redo.clear();
     _strokes.clear();
     _current = null;
     notifyListeners();

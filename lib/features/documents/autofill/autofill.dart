@@ -33,6 +33,28 @@ String matchChoice(DetectedField f, String value) {
   return '';
 }
 
+/// Se l'etichetta è già il tipo di strada ("Via ____"), il valore non lo ripete ("Via Via Roma 1" → "Roma 1").
+String stripStreetType(String label, String value) {
+  const types = {'via', 'viale', 'piazza', 'piazzale', 'corso', 'largo', 'vicolo', 'strada', 'contrada'};
+  final l = normalizeForMatching(label.trim());
+  if (!types.contains(l)) return value;
+  final m = RegExp(r'^\s*(\S+)\s+(.+)$').firstMatch(value);
+  if (m == null || normalizeForMatching(m.group(1)!) != l) return value;
+  return m.group(2)!.trim();
+}
+
+/// Valore proposto per un campo con un profilo: tipo di dato, opzione da spuntare, dati personalizzati.
+String proposalValue(DetectedField f, Profile profile, {required String today}) {
+  var v = f.kind.proposedValue(profile, today: today);
+  if (f.kind.isChoice) v = matchChoice(f, v);
+  if (f.kind == FieldKind.address) v = stripStreetType(f.label, v);
+  if (f.kind == FieldKind.custom) {
+    final key = customKeyId(f.label);
+    v = profile.custom.where((c) => customKeyId(c.key) == key).firstOrNull?.value ?? '';
+  }
+  return v;
+}
+
 /// Crea le proposte dai campi trovati. I campi senza valore nel profilo partono esclusi.
 List<FillProposal> buildProposals(List<DetectedField> fields, Profile profile, {required String today, bool hasSignature = false}) {
   final sorted = [...fields]..sort((a, b) {
@@ -44,8 +66,7 @@ List<FillProposal> buildProposals(List<DetectedField> fields, Profile profile, {
   return [
     for (final f in sorted)
       () {
-        var v = f.kind.proposedValue(profile, today: today);
-        if (f.kind.isChoice) v = matchChoice(f, v);
+        final v = proposalValue(f, profile, today: today);
         final include = f.kind == FieldKind.signature ? hasSignature : v.isNotEmpty;
         return FillProposal(field: f, value: v, include: include);
       }(),
@@ -114,15 +135,43 @@ List<PlacedElement> proposalsToElements(
 }
 
 /// Valori AcroForm proposti dal profilo per i campi ancora vuoti, in base al nome del campo.
+/// Testi: il dato del profilo. Liste e pulsanti di scelta (provincia, sesso…): l'opzione corrispondente.
+/// Le caselle (es. consensi) non si spuntano mai da sole.
 Map<String, String> acroFormValuesFromProfile(List<FormFieldInfo> fields, Map<String, String> current, Profile profile, {required String today}) {
   final out = <String, String>{};
   for (final f in fields) {
-    if (f.kind != FormFieldKind.text || !f.isFillable) continue;
+    if (!f.isFillable) continue;
+    if (f.kind == FormFieldKind.checkbox) continue;
     if ((current[f.name] ?? '').trim().isNotEmpty) continue;
     final kind = kindForFieldName(f.name);
     if (kind == null || kind == FieldKind.signature) continue;
-    final v = kind.proposedValue(profile, today: today);
-    if (v.isNotEmpty) out[f.name] = v;
+    var v = kind.proposedValue(profile, today: today);
+    // Campo indirizzo su più righe: indirizzo completo.
+    if (kind == FieldKind.address && f.multiline) {
+      v = [profile[ProfileField.address], [profile[ProfileField.zip], profile[ProfileField.city]].where((s) => s.isNotEmpty).join(' '),
+        if (profile[ProfileField.province].isNotEmpty) '(${profile[ProfileField.province].toUpperCase()})'].where((s) => s.isNotEmpty).join(' ');
+    }
+    if (v.isEmpty) continue;
+    if (f.kind == FormFieldKind.text) {
+      out[f.name] = v;
+    } else if (f.options.isNotEmpty) {
+      final match = _matchOption(f.options, v);
+      if (match != null) out[f.name] = match;
+    }
   }
   return out;
+}
+
+/// Opzione di una lista che corrisponde a un valore ("BO" ~ "Bologna (BO)", "F" ~ "Femmina").
+String? _matchOption(List<String> options, String value) {
+  final v = normalizeForMatching(value.trim());
+  for (final o in options) {
+    if (normalizeForMatching(o.trim()) == v) return o;
+  }
+  for (final o in options) {
+    final n = normalizeForMatching(o.trim());
+    if (v.length == 1 && n.startsWith(v)) return o; // M/F
+    if (v.length == 2 && RegExp('\\($v\\)').hasMatch(n)) return o; // sigla di provincia tra parentesi
+  }
+  return null;
 }

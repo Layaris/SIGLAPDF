@@ -47,8 +47,8 @@ class _AutofillPreviewPageState extends State<AutofillPreviewPage> {
       _profileId = id;
       for (var i = 0; i < widget.proposals.length; i++) {
         final pr = widget.proposals[i];
-        if (pr.isSignature || pr.isChoice) continue;
-        final v = pr.field.kind.proposedValue(np.profile, today: widget.today);
+        if (pr.isSignature) continue;
+        final v = proposalValue(pr.field, np.profile, today: widget.today);
         pr.value = v;
         pr.include = v.isNotEmpty;
         _ctrls[i].text = v;

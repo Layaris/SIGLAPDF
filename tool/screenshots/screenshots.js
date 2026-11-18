@@ -1,7 +1,7 @@
 // Rifà gli screenshot di Sigla per Layaris/DMReleases (telefono e computer, chiaro e scuro).
 //
 // Uso (dalla cartella del progetto):
-//   flutter build web --release --no-web-resources-cdn
+//   ./tool/build_web.sh
 //   (cd build/web && python3 -m http.server 8766 &)
 //   python3 tool/screenshots/make_sample_pdf.py        # solo se cambi il modulo di esempio
 //   NODE_PATH=$(npm root -g) node tool/screenshots/screenshots.js [cartella-uscita] [url]
@@ -51,7 +51,8 @@ async function shot(p, name) {
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
   const udata = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sigla-shots-'));
-  const ctx = await chromium.launchPersistentContext(udata, { viewport: PHONE, deviceScaleFactor: DSF, colorScheme: 'light', acceptDownloads: true });
+  // Service worker spento: gli screenshot usano sempre i file appena compilati.
+  const ctx = await chromium.launchPersistentContext(udata, { viewport: PHONE, deviceScaleFactor: DSF, colorScheme: 'light', acceptDownloads: true, serviceWorkers: 'block' });
   const p = ctx.pages()[0];
   p.on('pageerror', (e) => console.log('Errore nella pagina:', e.message));
   p.on('filechooser', async (c) => { await c.setFiles(PDF); });

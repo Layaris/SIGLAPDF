@@ -19,12 +19,19 @@ class WordBox {
 }
 
 /// Trova i campi su una pagina a partire da righe di parole (da testo PDF o da OCR).
-List<DetectedField> detectFieldsInLines(List<List<WordBox>> lines, PdfPageInfo info, int page, {String source = 'locale'}) =>
+List<DetectedField> detectFieldsInLines(
+  List<List<WordBox>> lines,
+  PdfPageInfo info,
+  int page, {
+  String source = 'locale',
+  List<String> extraLabels = const [],
+}) =>
     const LocalTextFieldDetector()._detectOnLines(
       lines.map(_Line.fromWords).whereType<_Line>().toList(),
       info,
       page,
       source: source,
+      extraLabels: extraLabels,
     );
 
 /// Righe di parole in coordinate visive estratte dal testo di una pagina PDF (syncfusion).
@@ -55,6 +62,14 @@ class LocalTextFieldDetector implements FieldDetector {
   String get name => 'locale';
 
   static final _fill = RegExp(r'_{3,}|\.{4,}|…{2,}');
+  static final _dateFill = RegExp(r'(?:_{2,}|\.{2,})\s*[/.\-]\s*(?:_{2,}|\.{2,})\s*[/.\-]\s*(?:_{2,}|\.{2,})');
+
+  /// Etichetta in fondo a una frase ("…scrivendo all'indirizzo"): senza linea né ":" non è un campo.
+  static bool _isProse(_Line line, LabelMatch label, String region) {
+    if (region.contains(':')) return false;
+    final before = line.norm.substring(0, label.start).trim();
+    return before.isNotEmpty && before.split(RegExp(r'\s+')).length > 6;
+  }
 
   @override
   Future<List<DetectedField>> detect(DetectionInput input) async {
@@ -71,7 +86,7 @@ class LocalTextFieldDetector implements FieldDetector {
         } catch (_) {
           continue;
         }
-        final found = detectFieldsInLines(lines, info, p, source: name);
+        final found = detectFieldsInLines(lines, info, p, source: name, extraLabels: input.extraLabels);
         for (final f in found) {
           final clash = input.avoid.any((a) => a.$1 == p && _overlap(a.$2, f.rect) > 0.3);
           final dup = out.any((o) => o.page == p && _overlap(o.rect, f.rect) > 0.6);
@@ -92,7 +107,7 @@ class LocalTextFieldDetector implements FieldDetector {
     return small <= 0 ? 0 : ix * iy / small;
   }
 
-  List<DetectedField> _detectOnLines(List<_Line> lines, PdfPageInfo info, int page, {required String source}) {
+  List<DetectedField> _detectOnLines(List<_Line> lines, PdfPageInfo info, int page, {required String source, List<String> extraLabels = const []}) {
     if (lines.isEmpty) return const [];
     final size = info.visual;
     lines.sort((a, b) => a.bounds.top.compareTo(b.bounds.top));
@@ -103,7 +118,7 @@ class LocalTextFieldDetector implements FieldDetector {
     for (var li = 0; li < lines.length; li++) {
       final line = lines[li];
       out.addAll(_choices(line, size, page, source));
-      final labels = findLabels(line.norm);
+      final labels = findLabels(line.norm, extra: extraLabels);
       if (labels.isEmpty) continue;
       final h = line.bounds.height;
       for (var i = 0; i < labels.length; i++) {
@@ -113,13 +128,14 @@ class LocalTextFieldDetector implements FieldDetector {
         final region = line.norm.substring(regionStart, regionEnd);
         Rect? box;
 
-        final fill = _fill.firstMatch(region);
+        // Data a gruppi ("__/__/____"): un solo riquadro dal primo all'ultimo gruppo.
+        final fill = _dateFill.firstMatch(region) ?? _fill.firstMatch(region);
         if (fill != null) {
           // Linea "____" o "....": si scrive sopra.
           final a = line.chars[regionStart + fill.start].rect;
           final b = line.chars[regionStart + fill.end - 1].rect;
           box = Rect.fromLTRB(a.left, line.bounds.top - h * 0.15, b.right, line.bounds.bottom - h * 0.1);
-        } else if (region.replaceAll(RegExp(r'[\s:;,.\-]'), '').isEmpty) {
+        } else if (region.replaceAll(RegExp(r'[\s:;,.\-]'), '').isEmpty && !_isProse(line, label, region)) {
           // Solo ":" o spazi dopo l'etichetta: spazio fino alla prossima etichetta o a fine riga.
           var lastIdx = label.end - 1;
           for (var k = regionStart; k < regionEnd; k++) {
@@ -151,14 +167,19 @@ class LocalTextFieldDetector implements FieldDetector {
   }
 
   static final _box = RegExp(r'\[\s*\]|\(\s*\)|[☐□◻▢❑❒]');
-  static final _word = RegExp(r'[a-zà-ÿ]+');
+  static final _optionWord = RegExp(r'(?:non\s+)?[a-zà-ÿ]+');
 
   /// Etichetta normalizzata di un'opzione (Sì/No, M/F) o null se non è una scelta nota.
-  static String? _optionLabel(String w) => switch (w) {
+  static String? optionLabel(String w) => _optionLabel(normalizeForMatching(w.trim()));
+
+  static String? _optionLabel(String w) => switch (w.replaceAll(RegExp(r'\s+'), ' ')) {
         'si' || 'sì' || 'sí' || 'yes' => 'Sì',
         'no' => 'No',
         'm' || 'maschio' || 'male' => 'M',
         'f' || 'femmina' || 'female' => 'F',
+        // Consensi privacy.
+        'acconsento' || 'autorizzo' || 'accetto' || 'presto' || 'consento' || 'i agree' => 'Sì',
+        'non acconsento' || 'non autorizzo' || 'non accetto' || 'nego' || 'non consento' || 'i do not agree' => 'No',
         _ => null,
       };
 
@@ -172,11 +193,11 @@ class LocalTextFieldDetector implements FieldDetector {
     Match? wordAfter(Match m) {
       final rest = line.norm.substring(m.end);
       final skip = rest.length - rest.trimLeft().length;
-      final w = _word.matchAsPrefix(rest, skip);
+      final w = _optionWord.matchAsPrefix(rest, skip);
       return w != null && _optionLabel(w.group(0)!) != null ? w : null;
     }
     Match? wordBefore(Match m) {
-      final w = RegExp(r'([a-zà-ÿ]+)\s*$').firstMatch(line.norm.substring(0, m.start));
+      final w = RegExp(r'((?:non\s+)?[a-zà-ÿ]+)\s*$').firstMatch(line.norm.substring(0, m.start));
       return w != null && _optionLabel(w.group(1)!) != null ? w : null;
     }
     // "[ ] Sì [ ] No" (casella prima) oppure "Sì [ ] No [ ]" (casella dopo): vince la lettura con più opzioni.
