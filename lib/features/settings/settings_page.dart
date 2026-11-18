@@ -6,6 +6,7 @@ import '../../core/app_services.dart';
 import '../../core/l10n/l10n.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/page_frame.dart';
+import '../../services/field_detection/ai_detector.dart';
 import '../backup/backup_dialogs.dart';
 import '../documents/templates/templates_page.dart';
 import 'settings_model.dart';
@@ -163,45 +164,24 @@ class _SecuritySection extends StatelessWidget {
   }
 }
 
-class _AiSection extends StatefulWidget {
+class _AiSection extends StatelessWidget {
   const _AiSection();
 
-  @override
-  State<_AiSection> createState() => _AiSectionState();
-}
-
-class _AiSectionState extends State<_AiSection> {
-  late final TextEditingController _key;
-  late final TextEditingController _model;
-  bool _obscure = true;
-  bool _init = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_init) return;
-    _init = true;
-    final s = AppScope.of(context).settings.value;
-    _key = TextEditingController(text: s.aiApiKey);
-    _model = TextEditingController(text: s.aiModel);
-  }
-
-  @override
-  void dispose() {
-    _key.dispose();
-    _model.dispose();
-    super.dispose();
-  }
+  static String _modeLabel(String mode) => switch (AiProvider.parse(mode)) {
+        null => tr('Automatico: prima Gemini, poi NanoGPT, poi Claude'),
+        final p => tr('Solo {0}', [p.label]),
+      };
 
   @override
   Widget build(BuildContext context) {
     final repo = AppScope.of(context).settings;
     final s = repo.value;
     final c = AppColors.of(context);
+    final only = AiProvider.parse(s.aiMode);
     return _Section(title: tr('Riconoscimento AI'), children: [
       SwitchListTile(
         title: Text(tr('Usa il riconoscimento AI')),
-        subtitle: Text(tr('Per PDF scansionati o senza testo. Facoltativo.'), style: TextStyle(color: c.secondary)),
+        subtitle: Text(tr('Per PDF scansionati o senza testo e per i campi che la ricerca sul dispositivo non trova. Facoltativo.'), style: TextStyle(color: c.secondary)),
         value: s.aiEnabled,
         onChanged: (v) => repo.update((x) => x.copyWith(aiEnabled: v)),
       ),
@@ -215,37 +195,154 @@ class _AiSectionState extends State<_AiSection> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(color: c.paper, borderRadius: BorderRadius.circular(10), border: Border.all(color: c.line)),
                 child: Text(
-                  tr('Quando lo usi, le pagine del documento vengono inviate come immagini all\'API di Anthropic con la tua chiave. Non usarlo per documenti che non vuoi condividere. La chiave resta solo su questo dispositivo e non va nel backup.'),
+                  tr('Quando lo usi, le pagine del documento vengono inviate come immagini al servizio scelto (Google Gemini, NanoGPT o Anthropic) con la tua chiave. Non usarlo per documenti che non vuoi condividere. Con il livello gratuito di Gemini, Google può usare i contenuti per migliorare i suoi prodotti. Le chiavi restano solo su questo dispositivo e non vanno nel backup.'),
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _key,
-                obscureText: _obscure,
-                autocorrect: false,
-                enableSuggestions: false,
-                decoration: InputDecoration(
-                  labelText: tr('Chiave API Anthropic'),
-                  hintText: 'sk-ant-…',
-                  suffixIcon: IconButton(
-                    tooltip: _obscure ? tr('Mostra') : tr('Nascondi'),
-                    icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                    onPressed: () => setState(() => _obscure = !_obscure),
+              DropdownButtonFormField<String>(
+                initialValue: only?.name ?? 'auto',
+                isExpanded: true,
+                decoration: InputDecoration(labelText: tr('Servizio')),
+                items: [
+                  for (final m in ['auto', ...AiProvider.values.map((p) => p.name)])
+                    DropdownMenuItem(value: m, child: Text(_modeLabel(m), overflow: TextOverflow.ellipsis)),
+                ],
+                onChanged: (v) => repo.update((x) => x.copyWith(aiMode: v ?? 'auto')),
+              ),
+              if (only == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    tr('Si usa il primo servizio con la chiave; se non risponde (limite o credito finiti, chiave che non va, errore) si passa da soli al successivo.'),
+                    style: TextStyle(color: c.secondary, fontSize: 13),
                   ),
                 ),
-                onChanged: (v) => repo.update((x) => x.copyWith(aiApiKey: v.trim())),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _model,
-                autocorrect: false,
-                decoration: InputDecoration(labelText: tr('Modello'), helperText: tr('Predefinito: {0}', [AppSettings.defaultAiModel])),
-                onChanged: (v) => repo.update((x) => x.copyWith(aiModel: v.trim().isEmpty ? AppSettings.defaultAiModel : v.trim())),
-              ),
+              for (final p in only == null ? AiProvider.values : [only]) _AiProviderFields(key: ValueKey(p), provider: p),
             ],
           ),
         ),
     ]);
+  }
+}
+
+/// Chiave, modello e prova della connessione di un servizio AI.
+class _AiProviderFields extends StatefulWidget {
+  const _AiProviderFields({super.key, required this.provider});
+  final AiProvider provider;
+
+  @override
+  State<_AiProviderFields> createState() => _AiProviderFieldsState();
+}
+
+class _AiProviderFieldsState extends State<_AiProviderFields> {
+  late final TextEditingController _key;
+  late final TextEditingController _model;
+  bool _obscure = true;
+  bool _init = false;
+  bool _testing = false;
+
+  AiProvider get p => widget.provider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_init) return;
+    _init = true;
+    final a = AppScope.of(context).settings.value.access(p);
+    _key = TextEditingController(text: a.apiKey);
+    _model = TextEditingController(text: a.model);
+  }
+
+  @override
+  void dispose() {
+    _key.dispose();
+    _model.dispose();
+    super.dispose();
+  }
+
+  AppSettings _withKey(AppSettings x, String v) => switch (p) {
+        AiProvider.gemini => x.copyWith(geminiApiKey: v),
+        AiProvider.nanogpt => x.copyWith(nanoGptApiKey: v),
+        AiProvider.anthropic => x.copyWith(aiApiKey: v),
+      };
+
+  AppSettings _withModel(AppSettings x, String v) => switch (p) {
+        AiProvider.gemini => x.copyWith(geminiModel: v),
+        AiProvider.nanogpt => x.copyWith(nanoGptModel: v),
+        AiProvider.anthropic => x.copyWith(aiModel: v.isEmpty ? AppSettings.defaultAiModel : v),
+      };
+
+  Future<void> _test() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final access = AppScope.of(context).settings.value.access(p);
+    setState(() => _testing = true);
+    String msg;
+    try {
+      await testAiConnection(access);
+      msg = tr('Connessione a {0} riuscita.', [p.label]);
+    } on AiDetectionException catch (e) {
+      msg = e.message;
+    } catch (_) {
+      msg = tr('Connessione a {0} non riuscita. Controlla internet e riprova.', [p.label]);
+    }
+    if (!mounted) return;
+    setState(() => _testing = false);
+    messenger.showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final repo = AppScope.of(context).settings;
+    final c = AppColors.of(context);
+    final others = p.models.where((m) => m != p.defaultModel).join(', ');
+    return Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(p.label, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 2),
+          SelectableText(tr('Chiave da {0}', [p.keyUrl]), style: TextStyle(color: c.secondary, fontSize: 13)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _key,
+            obscureText: _obscure,
+            autocorrect: false,
+            enableSuggestions: false,
+            decoration: InputDecoration(
+              labelText: tr('Chiave API {0}', [p.label]),
+              suffixIcon: IconButton(
+                tooltip: _obscure ? tr('Mostra') : tr('Nascondi'),
+                icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                onPressed: () => setState(() => _obscure = !_obscure),
+              ),
+            ),
+            onChanged: (v) => repo.update((x) => _withKey(x, v.trim())),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _model,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: tr('Modello {0}', [p.label]),
+              helperText: others.isEmpty ? tr('Predefinito: {0}', [p.defaultModel]) : tr('Predefinito: {0}. Altri: {1}', [p.defaultModel, others]),
+              helperMaxLines: 3,
+            ),
+            onChanged: (v) => repo.update((x) => _withModel(x, v.trim())),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _testing || _key.text.trim().isEmpty ? null : _test,
+              icon: _testing
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.wifi_tethering),
+              label: Text(tr('Prova la connessione')),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

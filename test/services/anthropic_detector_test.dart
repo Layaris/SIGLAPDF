@@ -67,7 +67,7 @@ void main() {
 
   test('errori HTTP tradotti in messaggi chiari', () async {
     for (final (code, text) in [
-      (401, 'Chiave API non valida'),
+      (401, 'non valida'),
       (429, 'Troppe richieste'),
       (529, 'non è disponibile'),
       (404, 'Modello non trovato'),

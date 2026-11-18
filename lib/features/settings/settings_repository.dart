@@ -19,9 +19,14 @@ class SettingsRepository extends ChangeNotifier {
   }
 
   /// Sostituisce le impostazioni con quelle di un backup, mantenendo quelle legate a questo
-  /// dispositivo: la chiave API e il blocco delle firme (dipende dall'impronta/PIN di questo telefono).
+  /// dispositivo: le chiavi API e il blocco delle firme (dipende dall'impronta/PIN di questo telefono).
   Future<void> restoreFromBackup(Map<String, dynamic> map) async {
-    final restored = AppSettings.fromMap(map).copyWith(aiApiKey: _settings.aiApiKey, biometricLock: _settings.biometricLock);
+    final restored = AppSettings.fromMap(map).copyWith(
+      aiApiKey: _settings.aiApiKey,
+      geminiApiKey: _settings.geminiApiKey,
+      nanoGptApiKey: _settings.nanoGptApiKey,
+      biometricLock: _settings.biometricLock,
+    );
     _settings = restored;
     notifyListeners();
     await _store.put(_key, _settings.toMap());

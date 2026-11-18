@@ -9,7 +9,7 @@ import 'package:printing/printing.dart';
 import '../../../core/app_services.dart';
 import '../../../core/l10n/l10n.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../services/field_detection/anthropic_detector.dart';
+import '../../../services/field_detection/ai_detector.dart';
 import '../../../services/field_detection/device_detector.dart';
 import '../../../services/field_detection/field_detector.dart';
 import '../../../services/pdf_service.dart';
@@ -648,6 +648,7 @@ class EditorPageState extends State<EditorPage> {
     final s = services.settings.value;
     final device = DeviceFieldDetector(ocr: services.ocr);
     if (!s.aiEnabled) return [device];
+    final chain = s.aiChain;
     final useAi = await showModalBottomSheet<bool>(
       context: context,
       builder: (context) => SafeArea(
@@ -672,7 +673,13 @@ class EditorPageState extends State<EditorPage> {
               ListTile(
                 leading: const Icon(Icons.auto_awesome_outlined),
                 title: Text(tr('AI avanzata')),
-                subtitle: Text(tr('Anche per PDF scansionati. Le pagine vengono inviate come immagini all\'API di Anthropic.')),
+                subtitle: Text(
+                  chain.isEmpty
+                      ? tr('Manca la chiave: inseriscila in Impostazioni › Riconoscimento AI.')
+                      : tr('Insieme alla ricerca sul dispositivo. Le pagine vengono inviate come immagini a {0}.', [
+                          chain.map((a) => a.provider.label).join(tr(' o poi a ')),
+                        ]),
+                ),
                 onTap: () => Navigator.pop(context, true),
               ),
             ],
@@ -682,11 +689,12 @@ class EditorPageState extends State<EditorPage> {
     );
     if (useAi == null) return null;
     if (!useAi) return [device];
-    if (s.aiApiKey.trim().isEmpty) {
+    if (chain.isEmpty) {
       _snack(tr('Inserisci la chiave API in Impostazioni › Riconoscimento AI'));
       return null;
     }
-    return [AnthropicFieldDetector(apiKey: s.aiApiKey, model: s.aiModel)];
+    // Prima il dispositivo (posizioni esatte dal testo del PDF), poi l'AI per quello che manca.
+    return [device, AiFieldDetector(chain: chain)];
   }
 
   /// "Compila automaticamente": trova i campi non segnalati e mostra l'anteprima.
@@ -708,7 +716,7 @@ class EditorPageState extends State<EditorPage> {
         ),
       ),
     );
-    final found = <DetectedField>[];
+    var found = <DetectedField>[];
     String? error;
     final avoid = [
       for (final f in ctrl.info.fields)
@@ -716,8 +724,7 @@ class EditorPageState extends State<EditorPage> {
     ];
     for (final d in detectors) {
       try {
-        found.addAll(
-          await d.detect(
+        final got = await d.detect(
             DetectionInput(
               pdf: ctrl.bytes,
               pages: ctrl.info.pages,
@@ -729,8 +736,8 @@ class EditorPageState extends State<EditorPage> {
                     if (c.key.isNotEmpty) c.key,
               }.toList(),
             ),
-          ),
-        );
+          );
+        found = d is AiFieldDetector ? mergeDetections(found, got) : [...found, ...got];
       } on AiDetectionException catch (e) {
         error = e.message;
       } on PdfOpenException catch (e) {
@@ -742,7 +749,11 @@ class EditorPageState extends State<EditorPage> {
     nav.pop();
     if (!mounted) return;
     // Pagine non analizzate dall'AI (errore a metà o oltre il limite): lo si dice nell'anteprima.
-    final aiWarning = detectors.whereType<AnthropicFieldDetector>().map((d) => d.lastWarning).whereType<String>().firstOrNull;
+    final aiWarning = [
+      ...detectors.whereType<AiFieldDetector>().map((d) => d.lastWarning).whereType<String>(),
+      // L'AI non ha risposto ma il dispositivo ha trovato qualcosa: si mostra quello, dicendolo.
+      if (error != null && found.isNotEmpty) tr('Riconoscimento AI non riuscito: {0}', [error]),
+    ].join('\n').ifEmptyNull;
     if (found.isEmpty) {
       _snack(
         error ??
