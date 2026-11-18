@@ -1,0 +1,8 @@
+{
+  "name": "sigla-e2e",
+  "private": true,
+  "description": "Prove end-to-end della web app di Sigla (Playwright): apertura senza internet",
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

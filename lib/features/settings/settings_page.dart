@@ -168,7 +168,7 @@ class _AiSection extends StatelessWidget {
   const _AiSection();
 
   static String _modeLabel(String mode) => switch (AiProvider.parse(mode)) {
-        null => tr('Automatico: prima Gemini, poi NanoGPT, poi Claude'),
+        null => tr('Automatico'),
         final p => tr('Solo {0}', [p.label]),
       };
 
@@ -213,7 +213,7 @@ class _AiSection extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
-                    tr('Si usa il primo servizio con la chiave; se non risponde (limite o credito finiti, chiave che non va, errore) si passa da soli al successivo.'),
+                    tr('Prima Gemini, poi NanoGPT, poi Claude, fra quelli con la chiave: se uno non risponde (limite o credito finiti, chiave che non va, errore) si passa da soli al successivo.'),
                     style: TextStyle(color: c.secondary, fontSize: 13),
                   ),
                 ),

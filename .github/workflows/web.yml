@@ -19,6 +19,8 @@ on:
       - "assets/**"
       - "pubspec.yaml"
       - "pubspec.lock"
+      - "tool/build_web.sh"
+      - "tool/e2e/**"
       - ".github/workflows/web.yml"
 
 permissions:
@@ -64,17 +66,29 @@ jobs:
         run: flutter pub get
       - if: steps.secret.outputs.pronto == 'true'
         run: flutter test
-      - name: Build web
+      - name: Build web (con service worker per l'uso senza internet)
         if: steps.secret.outputs.pronto == 'true'
-        run: |
-          VERSION=$(grep '^version:' pubspec.yaml | sed -E 's/version: *([^+]+).*/\1/')
-          flutter build web --release --no-web-resources-cdn --no-wasm-dry-run \
-            --base-href / \
-            --dart-define=APP_VERSION="$VERSION" --dart-define=APP_BUILD="web-${{ github.run_number }}"
+        run: ./tool/build_web.sh "${{ github.run_number }}"
       - uses: actions/setup-node@v4
         if: steps.secret.outputs.pronto == 'true'
         with:
           node-version: 22
+      # Se l'app installata non si apre senza internet (o con il server che non risponde) non si pubblica.
+      - name: Prova senza internet (Playwright)
+        if: steps.secret.outputs.pronto == 'true'
+        working-directory: tool/e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+          node offline.js ../../build/web
+      - name: Schermata dell'errore
+        if: failure() && steps.secret.outputs.pronto == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-e2e-errore
+          path: tool/e2e/errore-offline.png
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Crea il progetto Cloudflare (solo la prima volta)
         if: steps.secret.outputs.pronto == 'true'
         env:

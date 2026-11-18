@@ -51,3 +51,7 @@ app.*.map.json
 /android/key.properties
 *.jks
 *.keystore
+
+# Prove end-to-end (npm install in tool/e2e)
+tool/e2e/node_modules/
+tool/e2e/package-lock.json

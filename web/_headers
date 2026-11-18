@@ -1,0 +1,10 @@
+# Header di Cloudflare Pages.
+# Il service worker e version.json devono sempre essere controllati sul server, altrimenti una
+# versione nuova dell'app non arriverebbe mai a chi l'ha installata.
+/sigla_sw.js
+  Cache-Control: no-cache
+/version.json
+  Cache-Control: no-cache
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
