@@ -14,6 +14,9 @@ nel CHANGELOG di Layaris/DMReleases, e qui diventa "build-N".
 - Nuovo dato nel profilo: provincia di nascita
 - Moduli compilabili: provincia e sesso anche nei menu a tendina, indirizzo completo nei campi su più righe, nomi dei campi comprensibili
 - Riconoscimento AI: se una pagina non riesce le altre restano, avviso oltre le 10 pagine, caselle M/F e Sì/No, messaggio chiaro se il credito è finito
+- Riconoscimento AI anche con Google Gemini e NanoGPT, oltre a Claude: in automatico prova prima Gemini, poi NanoGPT, poi Claude, e se uno non risponde passa da solo al successivo. In Impostazioni la chiave e il modello di ognuno e "Prova la connessione"
+- Con l'AI la compilazione è più completa: prima cerca i campi sul dispositivo (posizioni precise), poi l'AI aggiunge quelli che mancano; se l'AI non risponde restano i campi trovati
+- Web app installata sul telefono o sul computer: si apre subito anche senza internet, con i tuoi dati, e apre i PDF
 - Privacy: le foto dello scanner e i PDF ricevuti con "Apri con" non restano più nella memoria dell'app
 - Se l'archivio del telefono non si apre, l'app parte lo stesso con un avviso (prima restava bianca)
 - Disegno della firma: "Annulla" annulla anche "Cancella"

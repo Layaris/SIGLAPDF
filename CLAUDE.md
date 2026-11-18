@@ -62,7 +62,8 @@ flutter pub get
 flutter analyze
 flutter test
 flutter run -d chrome                # web
-flutter build web --release
+./tool/build_web.sh                  # web (service worker compreso)
+NODE_PATH=$(npm root -g) node tool/e2e/offline.js   # prova senza internet
 flutter build apk --release          # NON lanciarlo nel container: si builda su GitHub
 ```
 
@@ -100,7 +101,7 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
    - `README.md` principale (blocco `<!-- app:sigla -->`) se cambia la descrizione breve.
 3. Se cambia l'aspetto, rifai gli screenshot (dati di fantasia, modulo di esempio incluso):
    ```bash
-   flutter build web --release --no-web-resources-cdn
+   ./tool/build_web.sh
    (cd build/web && python3 -m http.server 8766 &)
    NODE_PATH=$(npm root -g) node tool/screenshots/screenshots.js /tmp/shots
    python3 tool/screenshots/copy_to_dmreleases.py /tmp/shots ../DMReleases
@@ -142,6 +143,18 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
   `anthropic-version: 2026-10-21`, immagine PNG a 110 dpi, risposta vincolata con
   `output_config.format` (`json_schema`). Sul web header `anthropic-dangerous-direct-browser-access`.
   Massimo 10 pagine per richiesta. Prima di usarla l'editor chiede il motore e avvisa dell'invio.
+- **AI con Gemini e NanoGPT** (18 nov 2026, come PackSnap): `lib/services/field_detection/ai_detector.dart`.
+  Servizi `AiProvider.gemini|nanogpt|anthropic`; impostazione `aiMode` 'auto' (prima Gemini, poi NanoGPT,
+  poi Claude, fra quelli con la chiave) o uno solo; `AppSettings.aiChain`. Se un servizio fallisce
+  (chiave, credito, limite 429, rete, risposta illeggibile) si passa al successivo per le pagine che
+  restano, con nota nell'anteprima. Gemini: `x-goog-api-key`, `responseSchema` nativo (tipi in
+  maiuscolo) con `box_2d` [ymin,xmin,ymax,xmax] 0–1000, 150 dpi, parti `thought` ignorate. NanoGPT:
+  `https://api.nano-gpt.com/api/v1/chat/completions` (host diretto, CORS aperto), Bearer, `image_url`
+  data URL, niente `response_format` (i modelli economici non lo supportano), schema scritto nel testo e
+  JSON ripulito. Modelli predefiniti: `gemini-3.5-flash-lite`, NanoGPT `gemini-2.5-flash-lite`. Chiavi
+  `geminiApiKey`/`nanoGptApiKey` solo sul dispositivo (Hive), mai nel backup. "Prova la connessione":
+  richiesta di solo testo. Nell'editor con l'AI si usano dispositivo + AI e `mergeDetections` tiene le
+  posizioni del dispositivo. Avviso nelle impostazioni: il livello gratuito di Gemini usa i contenuti.
 - **Blocco firme**: `SignatureLock` + `Authenticator` (fake nei test). Si richiude con
   `AppLifecycleListener` (onHide/onPause). `biometricOnly: false` per permettere il PIN.
 - **Impostazioni**: le sezioni non sono `const`, altrimenti non si ricostruiscono al cambio.
@@ -181,6 +194,13 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
   (`inkElementFromStroke`); evidenziatore esportato con trasparenza `multiply`.
 - **Avviso di versione**: `UpdateService` legge `raw.githubusercontent.com/Layaris/DMReleases/main/sigla/latest.json`
   (max 1 volta/20 h, solo Android, build da `--dart-define=APP_BUILD`).
+- **Web app senza internet** (18 nov 2026): il service worker di Flutter 3.47 è deprecato e si cancella da
+  solo, quindi `web/sigla_sw.js` è scritto a mano (vedi `docs/ARCHITECTURE.md`). Build sempre con
+  `./tool/build_web.sh [N]` (scrive numero di build ed elenco file nel service worker; senza, la versione
+  nuova non arriverebbe). Prova `tool/e2e/offline.js` in `web.yml` prima della pubblicazione. Negli
+  screenshot il service worker è spento (`serviceWorkers: 'block'`).
+- **Database D1 / server**: Sigla non ha server né database online (solo file statici su Cloudflare
+  Pages): il limite di righe lette di D1 dell'account non la riguarda.
 - **Web app**: workflow `web.yml` → Cloudflare Pages, progetto `dmsigla` (`https://dmsigla.pages.dev`,
   base href `/`), come le altre app di DMReleases. Parte da solo a ogni push che tocca
   `lib/ web/ assets/ pubspec.*` sul branch principale (e a mano). Usa `npx wrangler@4`; crea il progetto
@@ -232,7 +252,7 @@ Quando aggiungi o cambi qualcosa che l'utente vede:
 
 Vedi `docs/ROADMAP.md`. **Fasi 1–9 completate** più le migliorie (recenti, modelli, firma con data,
 penna/evidenziatore, zoom con due dita e miniature, più profili, caselle Sì/No e M/F, avviso di nuova
-versione, web app su Cloudflare Pages, inglese). 170+ test verdi, `flutter analyze` pulito,
+versione, web app su Cloudflare Pages, inglese). 180 test verdi, `flutter analyze` pulito,
 build web verificata nel browser (Playwright: firma, profilo, apertura PDF, compilazione automatica,
 esportazione, nessuna richiesta esterna). **APK pubblicato** (build 5 su DMReleases, dopo l'audit; firmato con la
 chiave `CN=Sigla, O=DM Releases`, stesso certificato della build 4, ~100 MB universale); web app online su https://dmsigla.pages.dev.
@@ -249,4 +269,6 @@ In DMReleases la cartella `sigla/` è già su `main` (Layaris/DMReleases#1).
    token GitHub solo su DMReleases con Contents RW).
 2. L'utente prova l'APK sul telefono: correggere quello che non va. Possibile miglioria: APK divisi per
    architettura (`--split-per-abi`) per ridurre i ~100 MB.
-3. Idee future in `docs/ROADMAP.md`.
+3. Provare il riconoscimento con chiavi vere di Gemini e NanoGPT (nel container non ci sono) e la web app
+   installata senza rete su un telefono vero.
+4. Idee future in `docs/ROADMAP.md`.
